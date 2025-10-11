@@ -22,7 +22,22 @@ class Customer extends Model
         'total_borrowed',
         'total_paid',
         'loan_count',
-        'notes'
+        'notes',
+        // Motorcycle Details
+        'motorcycle_number_plate',
+        'motorcycle_chassis_number',
+        'motorcycle_model',
+        'motorcycle_type',
+        'motorcycle_engine_cc',
+        'motorcycle_colour',
+        // Next of Kin Details
+        'next_of_kin_name',
+        'next_of_kin_phone',
+        'next_of_kin_relationship',
+        // Guarantor Details
+        'guarantor_name',
+        'guarantor_phone',
+        'guarantor_relationship',
     ];
 
     protected $casts = [

@@ -26,7 +26,15 @@ class Loan extends Model
         'purpose',
         'notes',
         'approved_by',
-        'approved_at'
+        'approved_at',
+        // Photo paths for loan application
+        'bike_photo_path',
+        'logbook_photo_path',
+        'passport_photo_path',
+        'id_photo_path',
+        'next_of_kin_id_photo_path',
+        'guarantor_id_photo_path',
+        'application_details',
     ];
 
     protected $casts = [

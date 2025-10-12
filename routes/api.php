@@ -18,8 +18,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/complete-profile', [AuthController::class, 'completeProfile']);
 
     // Customer routes
+    Route::get('customers/my-profile', [CustomerController::class, 'myProfile']);
     Route::apiResource('customers', CustomerController::class);
     Route::get('customers/{customer}/stats', [CustomerController::class, 'stats']);
 

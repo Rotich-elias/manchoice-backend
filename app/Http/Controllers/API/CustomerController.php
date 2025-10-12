@@ -136,4 +136,35 @@ class CustomerController extends Controller
             'data' => $stats
         ]);
     }
+
+    /**
+     * Get customer profile for the authenticated user
+     */
+    public function myProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Try to find customer by user's customer_id or phone
+        $customer = null;
+
+        if ($user->customer_id) {
+            $customer = Customer::find($user->customer_id);
+        } else {
+            // Try to find by phone number
+            $customer = Customer::where('phone', $user->phone)->first();
+        }
+
+        if ($customer) {
+            return response()->json([
+                'success' => true,
+                'data' => $customer
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => null,
+            'message' => 'No profile found'
+        ]);
+    }
 }

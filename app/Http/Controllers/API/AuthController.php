@@ -19,14 +19,19 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users',
+            'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
+            'pin_confirmation' => 'required|same:pin',
+            'email' => 'nullable|string|email|max:255|unique:users',
+            'password' => 'nullable|string|min:8',
         ]);
 
         $user = User::create([
             'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'pin' => Hash::make($request->pin),
+            'email' => $request->email ?? $request->phone . '@manschoice.app',
+            'password' => $request->password ? Hash::make($request->password) : Hash::make($request->pin),
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -48,17 +53,18 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/',
+            'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $user = User::where('phone', $request->phone)->first();
+
+        if (!$user || !Hash::check($request->pin, $user->pin)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'phone' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -93,6 +99,28 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => $request->user()
+        ]);
+    }
+
+    /**
+     * Mark user profile as completed
+     */
+    public function completeProfile(Request $request): JsonResponse
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'profile_completed' => true,
+            'customer_id' => $request->customer_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile completed successfully',
+            'data' => $user->fresh()
         ]);
     }
 }

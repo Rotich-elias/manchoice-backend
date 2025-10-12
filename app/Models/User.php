@@ -21,7 +21,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
+        'pin',
+        'profile_completed',
+        'customer_id',
     ];
 
     /**
@@ -31,6 +35,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'pin',
         'remember_token',
     ];
 
@@ -44,6 +49,16 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pin' => 'hashed',
+            'profile_completed' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the customer associated with this user
+     */
+    public function customer()
+    {
+        return $this->belongsTo(\App\Models\Customer::class);
     }
 }

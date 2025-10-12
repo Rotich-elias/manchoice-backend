@@ -197,6 +197,51 @@ class LoanController extends Controller
     }
 
     /**
+     * Reject a loan
+     */
+    public function reject(Request $request, Loan $loan): JsonResponse
+    {
+        if ($loan->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending loans can be rejected'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $loan->update([
+                'status' => 'rejected',
+                'approved_by' => $request->user()->id,
+                'approved_at' => now(),
+                'notes' => ($loan->notes ? $loan->notes . "\n\n" : '') .
+                          "REJECTED: " . $validated['rejection_reason'],
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Loan rejected successfully',
+                'data' => $loan->load(['customer', 'approver'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject loan',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Remove the specified loan
      */
     public function destroy(Loan $loan): JsonResponse

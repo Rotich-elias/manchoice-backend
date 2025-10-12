@@ -8,12 +8,25 @@
 </div>
 
 <!-- Filter Tabs -->
-<div class="mb-4 flex space-x-2">
-    <a href="/admin/loans" class="px-4 py-2 bg-blue-600 text-white rounded">All Loans</a>
-    <a href="/admin/loans?status=pending" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Pending</a>
-    <a href="/admin/loans?status=approved" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Approved</a>
-    <a href="/admin/loans?status=active" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Active</a>
-    <a href="/admin/loans?status=completed" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Completed</a>
+<div class="mb-4 flex flex-wrap gap-2">
+    <a href="/admin/loans" class="px-4 py-2 rounded {{ (!isset($currentStatus) || $currentStatus === 'all') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        All Loans
+    </a>
+    <a href="/admin/loans?status=pending" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'pending') ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Pending
+    </a>
+    <a href="/admin/loans?status=approved" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'approved') ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Approved
+    </a>
+    <a href="/admin/loans?status=active" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'active') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Active
+    </a>
+    <a href="/admin/loans?status=completed" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'completed') ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Completed
+    </a>
+    <a href="/admin/loans?status=rejected" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'rejected') ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Rejected
+    </a>
 </div>
 
 <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -63,6 +76,7 @@
                         {{ $loan->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
                         {{ $loan->status === 'active' ? 'bg-blue-100 text-blue-800' : '' }}
                         {{ $loan->status === 'completed' ? 'bg-gray-100 text-gray-800' : '' }}
+                        {{ $loan->status === 'rejected' ? 'bg-red-100 text-red-800' : '' }}
                         {{ $loan->status === 'defaulted' ? 'bg-red-100 text-red-800' : '' }}
                     ">
                         {{ ucfirst($loan->status) }}
@@ -84,19 +98,34 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     @if($loan->status === 'pending')
-                        <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
-                            @csrf
-                            <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
-                                Approve
+                        <div class="flex space-x-2">
+                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                View
+                            </a>
+                            <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" onclick="return confirm('Approve this loan?')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                                    Approve
+                                </button>
+                            </form>
+                            <button onclick="showRejectModal({{ $loan->id }})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                Reject
                             </button>
-                        </form>
-                    @elseif($loan->approver)
-                        <div class="text-sm text-gray-500">
-                            Approved by: {{ $loan->approver->name }}
                         </div>
-                        <div class="text-xs text-gray-400">
-                            {{ $loan->approved_at->format('M d, Y') }}
+                    @else
+                        <div class="flex space-x-2">
+                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                View Details
+                            </a>
                         </div>
+                        @if($loan->approver)
+                            <div class="text-sm text-gray-500 mt-2">
+                                {{ $loan->status === 'rejected' ? 'Rejected' : 'Approved' }} by: {{ $loan->approver->name }}
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                {{ $loan->approved_at->format('M d, Y') }}
+                            </div>
+                        @endif
                     @endif
                 </td>
             </tr>
@@ -141,4 +170,56 @@
         </div>
     </div>
 </div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Reject Loan Application</h3>
+            <form id="rejectForm" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="rejection_reason">
+                        Reason for Rejection *
+                    </label>
+                    <textarea id="rejection_reason" name="rejection_reason" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        rows="4" placeholder="Enter the reason for rejecting this loan..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeRejectModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+                        Reject Loan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRejectModal(loanId) {
+    const modal = document.getElementById('rejectModal');
+    const form = document.getElementById('rejectForm');
+    form.action = `/admin/loans/${loanId}/reject`;
+    modal.classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    const modal = document.getElementById('rejectModal');
+    modal.classList.add('hidden');
+    document.getElementById('rejection_reason').value = '';
+}
+
+// Close modal when clicking outside
+document.getElementById('rejectModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRejectModal();
+    }
+});
+</script>
 @endsection

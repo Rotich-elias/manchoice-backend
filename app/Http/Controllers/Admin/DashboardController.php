@@ -37,10 +37,25 @@ class DashboardController extends Controller
         return view('admin.customers', compact('customers'));
     }
 
-    public function loans()
+    public function loans(Request $request)
     {
-        $loans = Loan::with(['customer', 'approver'])->latest()->paginate(20);
-        return view('admin.loans', compact('loans'));
+        $query = Loan::with(['customer', 'approver']);
+
+        // Filter by status if provided
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $loans = $query->latest()->paginate(20);
+        $currentStatus = $request->status ?? 'all';
+
+        return view('admin.loans', compact('loans', 'currentStatus'));
+    }
+
+    public function loanDetail($id)
+    {
+        $loan = Loan::with(['customer', 'approver', 'payments'])->findOrFail($id);
+        return view('admin.loan-detail', compact('loan'));
     }
 
     public function products()
@@ -69,6 +84,27 @@ class DashboardController extends Controller
         $customer->save();
 
         return back()->with('success', 'Loan approved successfully');
+    }
+
+    public function rejectLoan(Request $request, $id)
+    {
+        $loan = Loan::findOrFail($id);
+
+        if ($loan->status !== 'pending') {
+            return back()->with('error', 'Only pending loans can be rejected');
+        }
+
+        $rejectionReason = $request->input('rejection_reason', 'No reason provided');
+
+        $loan->update([
+            'status' => 'rejected',
+            'approved_by' => auth()->id() ?? 1,
+            'approved_at' => now(),
+            'notes' => ($loan->notes ? $loan->notes . "\n\n" : '') .
+                      "REJECTED: " . $rejectionReason,
+        ]);
+
+        return back()->with('success', 'Loan rejected successfully');
     }
 
     public function updateProductStock(Request $request, $id)

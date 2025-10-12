@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Loan routes
     Route::apiResource('loans', LoanController::class);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve']);
+    Route::post('loans/{loan}/reject', [LoanController::class, 'reject']);
 
     // Payment routes
     Route::apiResource('payments', PaymentController::class);

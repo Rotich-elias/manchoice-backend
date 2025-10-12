@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Payment routes
     Route::apiResource('payments', PaymentController::class);
+    Route::post('payments/{payment}/approve', [PaymentController::class, 'approve']);
+    Route::post('payments/{payment}/reject', [PaymentController::class, 'reject']);
     Route::post('payments/{payment}/reverse', [PaymentController::class, 'reverse']);
 
     // M-PESA routes

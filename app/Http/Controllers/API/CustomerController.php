@@ -53,6 +53,21 @@ class CustomerController extends Controller
             'business_name' => 'nullable|string|max:255',
             'credit_limit' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            // Motorcycle Details
+            'motorcycle_number_plate' => 'nullable|string|max:255',
+            'motorcycle_chassis_number' => 'nullable|string|max:255',
+            'motorcycle_model' => 'nullable|string|max:255',
+            'motorcycle_type' => 'nullable|string|max:255',
+            'motorcycle_engine_cc' => 'nullable|string|max:255',
+            'motorcycle_colour' => 'nullable|string|max:255',
+            // Next of Kin Details
+            'next_of_kin_name' => 'nullable|string|max:255',
+            'next_of_kin_phone' => 'nullable|string|max:255',
+            'next_of_kin_relationship' => 'nullable|string|max:255',
+            // Guarantor Details
+            'guarantor_name' => 'nullable|string|max:255',
+            'guarantor_phone' => 'nullable|string|max:255',
+            'guarantor_relationship' => 'nullable|string|max:255',
         ]);
 
         $customer = Customer::create($validated);
@@ -92,6 +107,21 @@ class CustomerController extends Controller
             'status' => 'sometimes|in:active,inactive,blacklisted',
             'credit_limit' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            // Motorcycle Details
+            'motorcycle_number_plate' => 'nullable|string|max:255',
+            'motorcycle_chassis_number' => 'nullable|string|max:255',
+            'motorcycle_model' => 'nullable|string|max:255',
+            'motorcycle_type' => 'nullable|string|max:255',
+            'motorcycle_engine_cc' => 'nullable|string|max:255',
+            'motorcycle_colour' => 'nullable|string|max:255',
+            // Next of Kin Details
+            'next_of_kin_name' => 'nullable|string|max:255',
+            'next_of_kin_phone' => 'nullable|string|max:255',
+            'next_of_kin_relationship' => 'nullable|string|max:255',
+            // Guarantor Details
+            'guarantor_name' => 'nullable|string|max:255',
+            'guarantor_phone' => 'nullable|string|max:255',
+            'guarantor_relationship' => 'nullable|string|max:255',
         ]);
 
         $customer->update($validated);

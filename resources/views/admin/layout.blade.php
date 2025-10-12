@@ -16,6 +16,7 @@
                     <a href="/admin" class="hover:text-blue-200">Dashboard</a>
                     <a href="/admin/customers" class="hover:text-blue-200">Customers</a>
                     <a href="/admin/loans" class="hover:text-blue-200">Loans</a>
+                    <a href="/admin/payments" class="hover:text-blue-200">Payments</a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
                 </div>
             </div>

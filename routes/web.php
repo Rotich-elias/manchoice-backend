@@ -14,7 +14,10 @@ Route::prefix('admin')->group(function () {
     Route::get('/loans', [DashboardController::class, 'loans']);
     Route::get('/loans/{id}', [DashboardController::class, 'loanDetail']);
     Route::get('/products', [DashboardController::class, 'products']);
+    Route::get('/payments', [DashboardController::class, 'payments']);
     Route::post('/loans/{id}/approve', [DashboardController::class, 'approveLoan']);
     Route::post('/loans/{id}/reject', [DashboardController::class, 'rejectLoan']);
+    Route::post('/payments/{id}/approve', [DashboardController::class, 'approvePayment']);
+    Route::post('/payments/{id}/reject', [DashboardController::class, 'rejectPayment']);
     Route::post('/products/{id}/update-stock', [DashboardController::class, 'updateProductStock']);
 });

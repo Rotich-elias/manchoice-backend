@@ -119,4 +119,75 @@ class DashboardController extends Controller
 
         return back()->with('success', 'Stock updated successfully');
     }
+
+    public function payments(Request $request)
+    {
+        $query = Payment::with(['loan.customer', 'customer']);
+
+        // Filter by status if provided
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $payments = $query->latest()->paginate(20);
+        $currentStatus = $request->status ?? 'all';
+
+        $pendingCount = Payment::where('status', 'pending')->count();
+
+        return view('admin.payments', compact('payments', 'currentStatus', 'pendingCount'));
+    }
+
+    public function approvePayment($id)
+    {
+        $payment = Payment::findOrFail($id);
+
+        if ($payment->status !== 'pending') {
+            return back()->with('error', 'Only pending payments can be approved');
+        }
+
+        // Update payment status
+        $payment->update([
+            'status' => 'completed',
+            'recorded_by' => auth()->id() ?? 1,
+            'notes' => ($payment->notes ?? '') . "\nApproved by admin on " . now()->toDateTimeString()
+        ]);
+
+        // Update loan
+        $loan = $payment->loan;
+        $loan->amount_paid += $payment->amount;
+        $loan->balance -= $payment->amount;
+
+        if ($loan->balance <= 0) {
+            $loan->status = 'completed';
+        } else if ($loan->status === 'approved') {
+            $loan->status = 'active';
+        }
+
+        $loan->save();
+
+        // Update customer
+        $customer = $payment->customer;
+        $customer->total_paid += $payment->amount;
+        $customer->save();
+
+        return back()->with('success', 'Payment approved successfully');
+    }
+
+    public function rejectPayment(Request $request, $id)
+    {
+        $payment = Payment::findOrFail($id);
+
+        if ($payment->status !== 'pending') {
+            return back()->with('error', 'Only pending payments can be rejected');
+        }
+
+        $rejectionReason = $request->input('rejection_reason', 'No reason provided');
+
+        $payment->update([
+            'status' => 'failed',
+            'notes' => ($payment->notes ?? '') . "\nRejected by admin: " . $rejectionReason
+        ]);
+
+        return back()->with('success', 'Payment rejected successfully');
+    }
 }

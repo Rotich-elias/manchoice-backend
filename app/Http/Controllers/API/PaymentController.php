@@ -49,7 +49,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Record a new payment
+     * Record a new payment (by client - requires admin approval)
      */
     public function store(Request $request): JsonResponse
     {
@@ -69,7 +69,7 @@ class PaymentController extends Controller
             $loan = Loan::findOrFail($validated['loan_id']);
 
             // Check if loan can accept payments
-            if (!in_array($loan->status, ['approved', 'active'])) {
+            if (!in_array($loan->status, ['approved', 'active', 'pending'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This loan cannot accept payments'
@@ -87,19 +87,62 @@ class PaymentController extends Controller
             // Generate transaction ID
             $transactionId = 'TXN' . date('YmdHis') . Str::random(4);
 
-            // Create payment
+            // Create payment with pending status (requires admin approval)
             $payment = Payment::create([
                 ...$validated,
                 'customer_id' => $loan->customer_id,
                 'transaction_id' => $transactionId,
                 'payment_date' => $validated['payment_date'] ?? now(),
+                'status' => 'pending', // Changed to pending
+                'recorded_by' => $request->user()->id ?? null,
+            ]);
+
+            // DO NOT update loan balances here - will be done after admin approval
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment submitted successfully. Waiting for admin approval.',
+                'data' => $payment->load(['loan', 'customer'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit payment',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve a pending payment (Admin only)
+     */
+    public function approve(Request $request, Payment $payment): JsonResponse
+    {
+        if ($payment->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending payments can be approved'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update payment status
+            $payment->update([
                 'status' => 'completed',
                 'recorded_by' => $request->user()->id,
+                'notes' => ($payment->notes ?? '') . "\nApproved by admin on " . now()->toDateTimeString()
             ]);
 
             // Update loan
-            $loan->amount_paid += $validated['amount'];
-            $loan->balance -= $validated['amount'];
+            $loan = $payment->loan;
+            $loan->amount_paid += $payment->amount;
+            $loan->balance -= $payment->amount;
 
             if ($loan->balance <= 0) {
                 $loan->status = 'completed';
@@ -110,23 +153,66 @@ class PaymentController extends Controller
             $loan->save();
 
             // Update customer
-            $customer = $loan->customer;
-            $customer->total_paid += $validated['amount'];
+            $customer = $payment->customer;
+            $customer->total_paid += $payment->amount;
             $customer->save();
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment recorded successfully',
+                'message' => 'Payment approved successfully',
                 'data' => $payment->load(['loan', 'customer'])
-            ], 201);
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to record payment',
+                'message' => 'Failed to approve payment',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a pending payment (Admin only)
+     */
+    public function reject(Request $request, Payment $payment): JsonResponse
+    {
+        if ($payment->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending payments can be rejected'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Update payment status
+            $payment->update([
+                'status' => 'failed',
+                'notes' => ($payment->notes ?? '') . "\nRejected by admin: " . $validated['rejection_reason']
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment rejected successfully',
+                'data' => $payment->load(['loan', 'customer'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject payment',
                 'error' => $e->getMessage()
             ], 500);
         }

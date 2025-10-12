@@ -56,6 +56,20 @@ class LoanController extends Controller
             'due_date' => 'nullable|date|after:today',
             'purpose' => 'nullable|string',
             'notes' => 'nullable|string',
+            // Document uploads
+            'bike_photo' => 'nullable|image|max:5120',
+            'logbook_photo' => 'nullable|image|max:5120',
+            'passport_photo' => 'nullable|image|max:5120',
+            'id_photo' => 'nullable|image|max:5120',
+            'next_of_kin_id_photo' => 'nullable|image|max:5120',
+            'guarantor_id_photo' => 'nullable|image|max:5120',
+            // Or photo paths if already stored locally
+            'bike_photo_path' => 'nullable|string',
+            'logbook_photo_path' => 'nullable|string',
+            'passport_photo_path' => 'nullable|string',
+            'id_photo_path' => 'nullable|string',
+            'next_of_kin_id_photo_path' => 'nullable|string',
+            'guarantor_id_photo_path' => 'nullable|string',
         ]);
 
         try {
@@ -73,6 +87,21 @@ class LoanController extends Controller
                 $validated['due_date'] = now()->addDays($validated['duration_days'])->toDateString();
             }
 
+            // Handle file uploads
+            $photoPaths = [];
+            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo', 'next_of_kin_id_photo', 'guarantor_id_photo'];
+
+            foreach ($photoFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $filename = $loanNumber . '_' . $field . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('loan-documents', $filename, 'public');
+                    $photoPaths[$field . '_path'] = $path;
+                } elseif (isset($validated[$field . '_path'])) {
+                    $photoPaths[$field . '_path'] = $validated[$field . '_path'];
+                }
+            }
+
             $loan = Loan::create([
                 ...$validated,
                 'loan_number' => $loanNumber,
@@ -80,6 +109,7 @@ class LoanController extends Controller
                 'balance' => $totalAmount,
                 'amount_paid' => 0,
                 'status' => 'pending',
+                ...$photoPaths,
             ]);
 
             // Update customer loan count

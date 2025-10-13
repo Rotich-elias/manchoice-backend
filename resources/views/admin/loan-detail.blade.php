@@ -230,6 +230,204 @@
     @endif
 </div>
 
+<!-- Payment Summary & Quick Payment -->
+@if(in_array($loan->status, ['approved', 'active', 'completed']))
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4 border-b pb-2">
+        <h2 class="text-xl font-bold">Payment Summary</h2>
+        @if(in_array($loan->status, ['approved', 'active']) && $loan->balance > 0)
+        <button onclick="showQuickPaymentModal()"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Record Payment
+        </button>
+        @endif
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div>
+            <span class="text-gray-600">Amount Paid</span>
+            <div class="text-2xl font-bold text-green-600">KES {{ number_format($loan->amount_paid, 2) }}</div>
+        </div>
+        <div>
+            <span class="text-gray-600">Outstanding Balance</span>
+            <div class="text-2xl font-bold {{ $loan->balance > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                KES {{ number_format($loan->balance, 2) }}
+            </div>
+        </div>
+        <div>
+            <span class="text-gray-600">Payment Progress</span>
+            <div class="text-2xl font-bold text-blue-600">
+                {{ $loan->total_amount > 0 ? number_format(($loan->amount_paid / $loan->total_amount) * 100, 1) : 0 }}%
+            </div>
+        </div>
+        <div>
+            <span class="text-gray-600">Total Payments</span>
+            <div class="text-2xl font-bold text-purple-600">{{ $loan->payments ? $loan->payments->count() : 0 }}</div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    @if($loan->payments && $loan->payments->count() > 0)
+    <div class="mt-6 pt-6 border-t">
+        <h3 class="font-semibold text-gray-700 mb-3">Payment History</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach($loan->payments as $payment)
+                    <tr>
+                        <td class="px-4 py-2 text-sm">{{ $payment->payment_date->format('M d, Y') }}</td>
+                        <td class="px-4 py-2 text-sm font-mono">{{ $payment->transaction_id }}</td>
+                        <td class="px-4 py-2 text-sm font-bold text-green-600">KES {{ number_format($payment->amount, 2) }}</td>
+                        <td class="px-4 py-2 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {{ strtoupper($payment->payment_method) }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full
+                                {{ $payment->status === 'completed' ? 'bg-green-100 text-green-800' : '' }}
+                                {{ $payment->status === 'pending' ? 'bg-orange-100 text-orange-800' : '' }}
+                                {{ $payment->status === 'failed' ? 'bg-red-100 text-red-800' : '' }}">
+                                {{ ucfirst($payment->status) }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+</div>
+@endif
+
+<!-- Quick Payment Modal -->
+<div id="quickPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+        <h3 class="text-xl font-bold mb-4">Record Payment for {{ $loan->loan_number }}</h3>
+        <form method="POST" action="/admin/payments/create">
+            @csrf
+            <input type="hidden" name="loan_id" value="{{ $loan->id }}">
+
+            <div class="mb-4 p-3 bg-blue-50 rounded">
+                <p><strong>Customer:</strong> {{ $loan->customer->name }}</p>
+                <p><strong>Outstanding Balance:</strong> <span class="text-red-600 font-bold">KES {{ number_format($loan->balance, 2) }}</span></p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Amount -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount (KES) *</label>
+                    <input type="number"
+                           name="amount"
+                           step="0.01"
+                           min="0.01"
+                           max="{{ $loan->balance }}"
+                           required
+                           class="w-full border border-gray-300 rounded px-3 py-2"
+                           placeholder="Enter amount">
+                </div>
+
+                <!-- Payment Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date *</label>
+                    <input type="date"
+                           name="payment_date"
+                           required
+                           value="{{ date('Y-m-d') }}"
+                           class="w-full border border-gray-300 rounded px-3 py-2">
+                </div>
+
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
+                    <select name="payment_method" id="quick_payment_method" required
+                            onchange="toggleQuickMpesaFields(this)"
+                            class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="">-- Select method --</option>
+                        <option value="cash">Cash</option>
+                        <option value="mpesa">M-PESA</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <!-- M-PESA Fields -->
+                <div id="quick_mpesa_fields" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <input type="text"
+                               name="phone_number"
+                               placeholder="254712345678"
+                               class="w-full border border-gray-300 rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">M-PESA Receipt Number</label>
+                        <input type="text"
+                               name="mpesa_receipt_number"
+                               placeholder="Enter M-PESA receipt code"
+                               class="w-full border border-gray-300 rounded px-3 py-2">
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <textarea name="notes"
+                              rows="2"
+                              class="w-full border border-gray-300 rounded px-3 py-2"
+                              placeholder="Add any additional notes..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button"
+                        onclick="hideQuickPaymentModal()"
+                        class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
+                    Record Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showQuickPaymentModal() {
+    document.getElementById('quickPaymentModal').classList.remove('hidden');
+    document.getElementById('quickPaymentModal').classList.add('flex');
+}
+
+function hideQuickPaymentModal() {
+    document.getElementById('quickPaymentModal').classList.add('hidden');
+    document.getElementById('quickPaymentModal').classList.remove('flex');
+}
+
+function toggleQuickMpesaFields(select) {
+    const mpesaFields = document.getElementById('quick_mpesa_fields');
+    if (select.value === 'mpesa') {
+        mpesaFields.classList.remove('hidden');
+    } else {
+        mpesaFields.classList.add('hidden');
+    }
+}
+</script>
+
 <!-- Application Documents -->
 <div class="bg-white rounded-lg shadow p-6 mb-6">
     <h2 class="text-xl font-bold mb-4 border-b pb-2">Application Documents</h2>

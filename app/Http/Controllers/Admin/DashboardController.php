@@ -134,7 +134,14 @@ class DashboardController extends Controller
 
         $pendingCount = Payment::where('status', 'pending')->count();
 
-        return view('admin.payments', compact('payments', 'currentStatus', 'pendingCount'));
+        // Get active/approved loans for the payment form
+        $activeLoans = Loan::with('customer')
+            ->whereIn('status', ['approved', 'active'])
+            ->where('balance', '>', 0)
+            ->orderBy('loan_number')
+            ->get();
+
+        return view('admin.payments', compact('payments', 'currentStatus', 'pendingCount', 'activeLoans'));
     }
 
     public function approvePayment($id)
@@ -189,5 +196,75 @@ class DashboardController extends Controller
         ]);
 
         return back()->with('success', 'Payment rejected successfully');
+    }
+
+    /**
+     * Create a new payment directly (Admin initiated)
+     */
+    public function createPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'loan_id' => 'required|exists:loans,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:mpesa,cash,bank_transfer,other',
+            'mpesa_receipt_number' => 'nullable|string',
+            'phone_number' => 'nullable|string',
+            'payment_date' => 'required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $loan = Loan::findOrFail($validated['loan_id']);
+
+            // Check if loan can accept payments
+            if (!in_array($loan->status, ['approved', 'active'])) {
+                return back()->with('error', 'This loan cannot accept payments. Current status: ' . $loan->status);
+            }
+
+            // Check if payment exceeds balance
+            if ($validated['amount'] > $loan->balance) {
+                return back()->with('error', 'Payment amount (KES ' . number_format($validated['amount'], 2) . ') exceeds loan balance (KES ' . number_format($loan->balance, 2) . ')');
+            }
+
+            // Generate transaction ID
+            $transactionId = 'TXN' . date('YmdHis') . strtoupper(substr(md5(uniqid()), 0, 4));
+
+            // Create payment with completed status (admin created, no approval needed)
+            $payment = Payment::create([
+                'loan_id' => $validated['loan_id'],
+                'customer_id' => $loan->customer_id,
+                'amount' => $validated['amount'],
+                'payment_method' => $validated['payment_method'],
+                'mpesa_receipt_number' => $validated['mpesa_receipt_number'] ?? null,
+                'phone_number' => $validated['phone_number'] ?? null,
+                'transaction_id' => $transactionId,
+                'payment_date' => $validated['payment_date'],
+                'status' => 'completed',
+                'recorded_by' => auth()->id() ?? 1,
+                'notes' => ($validated['notes'] ?? '') . "\nManually recorded by admin on " . now()->toDateTimeString(),
+            ]);
+
+            // Update loan
+            $loan->amount_paid += $payment->amount;
+            $loan->balance -= $payment->amount;
+
+            if ($loan->balance <= 0) {
+                $loan->status = 'completed';
+            } else if ($loan->status === 'approved') {
+                $loan->status = 'active';
+            }
+
+            $loan->save();
+
+            // Update customer
+            $customer = $loan->customer;
+            $customer->total_paid += $payment->amount;
+            $customer->save();
+
+            return back()->with('success', 'Payment of KES ' . number_format($payment->amount, 2) . ' recorded successfully!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to create payment: ' . $e->getMessage());
+        }
     }
 }

@@ -19,5 +19,6 @@ Route::prefix('admin')->group(function () {
     Route::post('/loans/{id}/reject', [DashboardController::class, 'rejectLoan']);
     Route::post('/payments/{id}/approve', [DashboardController::class, 'approvePayment']);
     Route::post('/payments/{id}/reject', [DashboardController::class, 'rejectPayment']);
+    Route::post('/payments/create', [DashboardController::class, 'createPayment']);
     Route::post('/products/{id}/update-stock', [DashboardController::class, 'updateProductStock']);
 });

@@ -18,9 +18,16 @@ class LoanController extends Controller
     {
         $query = Loan::with(['customer', 'payments']);
 
-        // Filter by customer
+        // Filter by customer ID
         if ($request->has('customer_id')) {
             $query->where('customer_id', $request->customer_id);
+        }
+
+        // Filter by customer name
+        if ($request->has('customer_name')) {
+            $query->whereHas('customer', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->customer_name . '%');
+            });
         }
 
         // Filter by status
@@ -35,7 +42,36 @@ class LoanController extends Controller
                   ->where('balance', '>', 0);
         }
 
-        $loans = $query->latest()->paginate(15);
+        // Sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        switch ($sortBy) {
+            case 'customer':
+            case 'customer_name':
+                $query->join('customers', 'loans.customer_id', '=', 'customers.id')
+                      ->select('loans.*')
+                      ->orderBy('customers.name', $sortOrder);
+                break;
+            case 'amount':
+            case 'total_amount':
+                $query->orderBy('total_amount', $sortOrder);
+                break;
+            case 'due_date':
+                $query->orderBy('due_date', $sortOrder);
+                break;
+            case 'balance':
+                $query->orderBy('balance', $sortOrder);
+                break;
+            case 'principal_amount':
+                $query->orderBy('principal_amount', $sortOrder);
+                break;
+            default:
+                $query->orderBy('created_at', $sortOrder);
+                break;
+        }
+
+        $loans = $query->paginate(15);
 
         return response()->json([
             'success' => true,

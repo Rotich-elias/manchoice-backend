@@ -20,9 +20,9 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
             'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
             'pin_confirmation' => 'required|same:pin',
-            'email' => 'nullable|string|email|max:255|unique:users',
             'password' => 'nullable|string|min:8',
         ]);
 
@@ -30,7 +30,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'phone' => $request->phone,
             'pin' => Hash::make($request->pin),
-            'email' => $request->email ?? $request->phone . '@manschoice.app',
+            'email' => $request->email,
             'password' => $request->password ? Hash::make($request->password) : Hash::make($request->pin),
         ]);
 

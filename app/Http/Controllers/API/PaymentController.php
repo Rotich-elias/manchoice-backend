@@ -18,7 +18,11 @@ class PaymentController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Payment::with(['loan', 'customer', 'recorder']);
+        // Only show payments for customers belonging to the authenticated user
+        $query = Payment::with(['loan', 'customer', 'recorder'])
+            ->whereHas('customer', function($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            });
 
         // Filter by loan
         if ($request->has('loan_id')) {
@@ -67,6 +71,14 @@ class PaymentController extends Controller
             DB::beginTransaction();
 
             $loan = Loan::findOrFail($validated['loan_id']);
+
+            // Ensure user can only make payments on their own loans
+            if ($loan->customer->user_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
 
             // Check if loan can accept payments
             if (!in_array($loan->status, ['approved', 'active', 'pending'])) {
@@ -221,8 +233,16 @@ class PaymentController extends Controller
     /**
      * Display the specified payment
      */
-    public function show(Payment $payment): JsonResponse
+    public function show(Request $request, Payment $payment): JsonResponse
     {
+        // Ensure user can only access payments for their own customers
+        if ($payment->customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $payment->load(['loan', 'customer', 'recorder']);
 
         return response()->json([

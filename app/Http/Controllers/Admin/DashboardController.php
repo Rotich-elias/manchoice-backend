@@ -72,9 +72,13 @@ class DashboardController extends Controller
             return back()->with('error', 'Only pending loans can be approved');
         }
 
+        if (!auth()->check()) {
+            return back()->with('error', 'You must be logged in to approve loans');
+        }
+
         $loan->update([
             'status' => 'approved',
-            'approved_by' => auth()->id() ?? 1,
+            'approved_by' => auth()->id(),
             'approved_at' => now(),
             'disbursement_date' => now()->toDateString(),
         ]);
@@ -118,6 +122,61 @@ class DashboardController extends Controller
         $product->update($validated);
 
         return back()->with('success', 'Stock updated successfully');
+    }
+
+    public function storeProduct(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'category' => 'required|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
+            'image_url' => 'nullable|url',
+            'stock_quantity' => 'required|integer|min:0',
+            'is_available' => 'nullable|boolean',
+        ]);
+
+        // Set defaults
+        $validated['is_available'] = $validated['is_available'] ?? true;
+        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+
+        Product::create($validated);
+
+        return back()->with('success', 'Product created successfully');
+    }
+
+    public function updateProduct(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'category' => 'required|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
+            'image_url' => 'nullable|url',
+            'stock_quantity' => 'required|integer|min:0',
+            'is_available' => 'nullable|boolean',
+        ]);
+
+        // Set defaults
+        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+
+        $product->update($validated);
+
+        return back()->with('success', 'Product updated successfully');
+    }
+
+    public function deleteProduct($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->delete();
+
+        return back()->with('success', 'Product deleted successfully');
     }
 
     public function payments(Request $request)

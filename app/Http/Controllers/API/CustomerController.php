@@ -14,7 +14,9 @@ class CustomerController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Customer::with(['loans', 'payments']);
+        // Filter customers by authenticated user
+        $query = Customer::with(['loans', 'payments'])
+            ->where('user_id', $request->user()->id);
 
         // Search by name, phone, email
         if ($request->has('search')) {
@@ -64,11 +66,18 @@ class CustomerController extends Controller
             'next_of_kin_name' => 'nullable|string|max:255',
             'next_of_kin_phone' => 'nullable|string|max:255',
             'next_of_kin_relationship' => 'nullable|string|max:255',
+            'next_of_kin_email' => 'nullable|email|max:255',
+            'next_of_kin_passport_photo_path' => 'nullable|string',
             // Guarantor Details
             'guarantor_name' => 'nullable|string|max:255',
             'guarantor_phone' => 'nullable|string|max:255',
             'guarantor_relationship' => 'nullable|string|max:255',
+            'guarantor_email' => 'nullable|email|max:255',
+            'guarantor_passport_photo_path' => 'nullable|string',
         ]);
+
+        // Associate customer with authenticated user
+        $validated['user_id'] = $request->user()->id;
 
         $customer = Customer::create($validated);
 
@@ -82,8 +91,16 @@ class CustomerController extends Controller
     /**
      * Display the specified customer
      */
-    public function show(Customer $customer): JsonResponse
+    public function show(Request $request, Customer $customer): JsonResponse
     {
+        // Ensure user can only access their own customers
+        if ($customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $customer->load(['loans.payments', 'payments']);
 
         return response()->json([
@@ -97,6 +114,14 @@ class CustomerController extends Controller
      */
     public function update(Request $request, Customer $customer): JsonResponse
     {
+        // Ensure user can only update their own customers
+        if ($customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'nullable|email|unique:customers,email,' . $customer->id,
@@ -118,10 +143,14 @@ class CustomerController extends Controller
             'next_of_kin_name' => 'nullable|string|max:255',
             'next_of_kin_phone' => 'nullable|string|max:255',
             'next_of_kin_relationship' => 'nullable|string|max:255',
+            'next_of_kin_email' => 'nullable|email|max:255',
+            'next_of_kin_passport_photo_path' => 'nullable|string',
             // Guarantor Details
             'guarantor_name' => 'nullable|string|max:255',
             'guarantor_phone' => 'nullable|string|max:255',
             'guarantor_relationship' => 'nullable|string|max:255',
+            'guarantor_email' => 'nullable|email|max:255',
+            'guarantor_passport_photo_path' => 'nullable|string',
         ]);
 
         $customer->update($validated);
@@ -136,8 +165,16 @@ class CustomerController extends Controller
     /**
      * Remove the specified customer
      */
-    public function destroy(Customer $customer): JsonResponse
+    public function destroy(Request $request, Customer $customer): JsonResponse
     {
+        // Ensure user can only delete their own customers
+        if ($customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $customer->delete();
 
         return response()->json([

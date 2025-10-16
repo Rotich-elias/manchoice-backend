@@ -12,12 +12,16 @@
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between py-4">
                 <div class="text-xl font-bold">Man's Choice Enterprise</div>
-                <div class="flex space-x-6">
+                <div class="flex items-center space-x-6">
                     <a href="/admin" class="hover:text-blue-200">Dashboard</a>
                     <a href="/admin/customers" class="hover:text-blue-200">Customers</a>
                     <a href="/admin/loans" class="hover:text-blue-200">Loans</a>
                     <a href="/admin/payments" class="hover:text-blue-200">Payments</a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
+                    <form method="POST" action="/admin/logout" class="inline">
+                        @csrf
+                        <button type="submit" class="hover:text-blue-200">Logout</button>
+                    </form>
                 </div>
             </div>
         </div>

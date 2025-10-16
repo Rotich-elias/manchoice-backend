@@ -2,13 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AuthController;
 
 Route::get('/', function () {
     return redirect('/admin');
 });
 
-// Admin routes
+// Admin authentication routes (no middleware)
 Route::prefix('admin')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
+});
+
+// Protected admin routes (requires admin middleware)
+Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
     Route::get('/customers', [DashboardController::class, 'customers']);
     Route::get('/loans', [DashboardController::class, 'loans']);
@@ -21,4 +29,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/payments/{id}/reject', [DashboardController::class, 'rejectPayment']);
     Route::post('/payments/create', [DashboardController::class, 'createPayment']);
     Route::post('/products/{id}/update-stock', [DashboardController::class, 'updateProductStock']);
+    Route::post('/products/store', [DashboardController::class, 'storeProduct']);
+    Route::post('/products/{id}/update', [DashboardController::class, 'updateProduct']);
+    Route::post('/products/{id}/delete', [DashboardController::class, 'deleteProduct']);
 });

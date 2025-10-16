@@ -16,7 +16,11 @@ class LoanController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Loan::with(['customer', 'payments']);
+        // Only show loans for customers belonging to the authenticated user
+        $query = Loan::with(['customer', 'payments'])
+            ->whereHas('customer', function($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            });
 
         // Filter by customer ID
         if ($request->has('customer_id')) {
@@ -98,14 +102,18 @@ class LoanController extends Controller
             'passport_photo' => 'nullable|image|max:5120',
             'id_photo' => 'nullable|image|max:5120',
             'next_of_kin_id_photo' => 'nullable|image|max:5120',
+            'next_of_kin_passport_photo' => 'nullable|image|max:5120',
             'guarantor_id_photo' => 'nullable|image|max:5120',
+            'guarantor_passport_photo' => 'nullable|image|max:5120',
             // Or photo paths if already stored locally
             'bike_photo_path' => 'nullable|string',
             'logbook_photo_path' => 'nullable|string',
             'passport_photo_path' => 'nullable|string',
             'id_photo_path' => 'nullable|string',
             'next_of_kin_id_photo_path' => 'nullable|string',
+            'next_of_kin_passport_photo_path' => 'nullable|string',
             'guarantor_id_photo_path' => 'nullable|string',
+            'guarantor_passport_photo_path' => 'nullable|string',
         ]);
 
         try {
@@ -125,7 +133,7 @@ class LoanController extends Controller
 
             // Handle file uploads
             $photoPaths = [];
-            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo', 'next_of_kin_id_photo', 'guarantor_id_photo'];
+            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo', 'next_of_kin_id_photo', 'next_of_kin_passport_photo', 'guarantor_id_photo', 'guarantor_passport_photo'];
 
             foreach ($photoFields as $field) {
                 if ($request->hasFile($field)) {
@@ -173,8 +181,16 @@ class LoanController extends Controller
     /**
      * Display the specified loan
      */
-    public function show(Loan $loan): JsonResponse
+    public function show(Request $request, Loan $loan): JsonResponse
     {
+        // Ensure user can only access loans for their own customers
+        if ($loan->customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $loan->load(['customer', 'payments', 'approver']);
 
         return response()->json([
@@ -188,6 +204,14 @@ class LoanController extends Controller
      */
     public function update(Request $request, Loan $loan): JsonResponse
     {
+        // Ensure user can only update loans for their own customers
+        if ($loan->customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'principal_amount' => 'sometimes|numeric|min:0',
             'interest_rate' => 'nullable|numeric|min:0|max:100',
@@ -310,8 +334,16 @@ class LoanController extends Controller
     /**
      * Remove the specified loan
      */
-    public function destroy(Loan $loan): JsonResponse
+    public function destroy(Request $request, Loan $loan): JsonResponse
     {
+        // Ensure user can only delete loans for their own customers
+        if ($loan->customer->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         if (in_array($loan->status, ['approved', 'active'])) {
             return response()->json([
                 'success' => false,

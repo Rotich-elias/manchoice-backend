@@ -11,6 +11,7 @@ class Customer extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -34,10 +35,14 @@ class Customer extends Model
         'next_of_kin_name',
         'next_of_kin_phone',
         'next_of_kin_relationship',
+        'next_of_kin_email',
+        'next_of_kin_passport_photo_path',
         // Guarantor Details
         'guarantor_name',
         'guarantor_phone',
         'guarantor_relationship',
+        'guarantor_email',
+        'guarantor_passport_photo_path',
     ];
 
     protected $casts = [
@@ -68,6 +73,14 @@ class Customer extends Model
     public function activeLoans(): HasMany
     {
         return $this->hasMany(Loan::class)->whereIn('status', ['approved', 'active']);
+    }
+
+    /**
+     * Get the user that owns the customer.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

@@ -33,7 +33,9 @@ class Loan extends Model
         'passport_photo_path',
         'id_photo_path',
         'next_of_kin_id_photo_path',
+        'next_of_kin_passport_photo_path',
         'guarantor_id_photo_path',
+        'guarantor_passport_photo_path',
         'application_details',
     ];
 

@@ -14,6 +14,8 @@ class Product extends Model
         'description',
         'category',
         'price',
+        'original_price',
+        'discount_percentage',
         'image_url',
         'stock_quantity',
         'is_available',
@@ -21,6 +23,8 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'original_price' => 'decimal:2',
+        'discount_percentage' => 'integer',
         'is_available' => 'boolean',
     ];
 

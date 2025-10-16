@@ -24,6 +24,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'pin',
+        'role',
         'profile_completed',
         'customer_id',
     ];

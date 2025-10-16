@@ -14,6 +14,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Public product browsing
+Route::get('/products/categories', [ProductController::class, 'categories']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/products/category/{category}', [ProductController::class, 'byCategory']);

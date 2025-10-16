@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -133,14 +134,24 @@ class DashboardController extends Controller
             'price' => 'required|numeric|min:0',
             'original_price' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|integer|min:0|max:100',
-            'image_url' => 'nullable|url',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'nullable|boolean',
         ]);
 
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imagePath = $image->store('products', 'public');
+            $validated['image_path'] = $imagePath;
+        }
+
         // Set defaults
         $validated['is_available'] = $validated['is_available'] ?? true;
         $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+
+        // Remove 'image' from validated data as it's not a database field
+        unset($validated['image']);
 
         Product::create($validated);
 
@@ -158,13 +169,28 @@ class DashboardController extends Controller
             'price' => 'required|numeric|min:0',
             'original_price' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|integer|min:0|max:100',
-            'image_url' => 'nullable|url',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'stock_quantity' => 'required|integer|min:0',
             'is_available' => 'nullable|boolean',
         ]);
 
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+
+            $image = $request->file('image');
+            $imagePath = $image->store('products', 'public');
+            $validated['image_path'] = $imagePath;
+        }
+
         // Set defaults
         $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+
+        // Remove 'image' from validated data as it's not a database field
+        unset($validated['image']);
 
         $product->update($validated);
 
@@ -174,6 +200,12 @@ class DashboardController extends Controller
     public function deleteProduct($id)
     {
         $product = Product::findOrFail($id);
+
+        // Delete product image if exists
+        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
         $product->delete();
 
         return back()->with('success', 'Product deleted successfully');

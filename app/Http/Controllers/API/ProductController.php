@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -55,10 +56,22 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
-            'image_url' => 'nullable|url|max:500',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'stock_quantity' => 'nullable|integer|min:0',
             'is_available' => 'nullable|boolean',
         ]);
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imagePath = $image->store('products', 'public');
+            $validated['image_path'] = $imagePath;
+        }
+
+        // Remove 'image' from validated data as it's not a database field
+        unset($validated['image']);
 
         $product = Product::create($validated);
 
@@ -90,10 +103,27 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
             'price' => 'sometimes|numeric|min:0',
-            'image_url' => 'nullable|url|max:500',
+            'original_price' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             'stock_quantity' => 'sometimes|integer|min:0',
             'is_available' => 'sometimes|boolean',
         ]);
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+
+            $image = $request->file('image');
+            $imagePath = $image->store('products', 'public');
+            $validated['image_path'] = $imagePath;
+        }
+
+        // Remove 'image' from validated data as it's not a database field
+        unset($validated['image']);
 
         $product->update($validated);
 
@@ -109,6 +139,11 @@ class ProductController extends Controller
      */
     public function destroy(Product $product): JsonResponse
     {
+        // Delete product image if exists
+        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
         $product->delete();
 
         return response()->json([
@@ -176,6 +211,19 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'data' => $products
+        ]);
+    }
+
+    /**
+     * Get available product categories
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = config('products.categories', []);
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories
         ]);
     }
 }

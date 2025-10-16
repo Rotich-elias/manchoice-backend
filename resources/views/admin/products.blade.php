@@ -115,7 +115,7 @@
             </button>
         </div>
 
-        <form id="productForm" method="POST" action="/admin/products/store">
+        <form id="productForm" method="POST" action="/admin/products/store" enctype="multipart/form-data">
             @csrf
             <input type="hidden" id="productId" name="product_id">
             <input type="hidden" id="formMethod" name="_method" value="POST">
@@ -135,12 +135,9 @@
                     <label class="block text-sm font-medium text-gray-700">Category *</label>
                     <select name="category" id="productCategory" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
                         <option value="">Select Category</option>
-                        <option value="Fashion">Fashion</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Small Appliances">Small Appliances</option>
-                        <option value="Phone Accessories">Phone Accessories</option>
-                        <option value="Home">Home</option>
-                        <option value="Other">Other</option>
+                        @foreach(config('products.categories', []) as $category)
+                            <option value="{{ $category }}">{{ $category }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -174,8 +171,13 @@
                 </div>
 
                 <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Image URL</label>
-                    <input type="url" name="image_url" id="productImageUrl" placeholder="https://example.com/image.jpg" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                    <label class="block text-sm font-medium text-gray-700">Product Image</label>
+                    <input type="file" name="image" id="productImage" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                    <p class="text-xs text-gray-500 mt-1">Max 5MB. Supported formats: JPEG, JPG, PNG, GIF, WebP</p>
+                    <div id="currentImagePreview" class="mt-2 hidden">
+                        <p class="text-xs text-gray-500 mb-1">Current image:</p>
+                        <img id="currentImage" src="" alt="Current product image" class="w-24 h-24 object-cover rounded border">
+                    </div>
                 </div>
             </div>
 
@@ -198,6 +200,7 @@ function showAddProductModal() {
     document.getElementById('formMethod').value = 'POST';
     document.getElementById('productForm').reset();
     document.getElementById('productId').value = '';
+    document.getElementById('currentImagePreview').classList.add('hidden');
     document.getElementById('productModal').classList.remove('hidden');
 }
 
@@ -214,7 +217,15 @@ function editProduct(product) {
     document.getElementById('productOriginalPrice').value = product.original_price || '';
     document.getElementById('productDiscount').value = product.discount_percentage || 0;
     document.getElementById('productStatus').value = product.is_available ? '1' : '0';
-    document.getElementById('productImageUrl').value = product.image_url || '';
+
+    // Show current image if exists
+    if (product.image_url) {
+        document.getElementById('currentImage').src = product.image_url;
+        document.getElementById('currentImagePreview').classList.remove('hidden');
+    } else {
+        document.getElementById('currentImagePreview').classList.add('hidden');
+    }
+
     document.getElementById('productModal').classList.remove('hidden');
 }
 
@@ -227,14 +238,21 @@ function deleteProduct(id) {
         fetch('/admin/products/' + id + '/delete', {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json'
             }
         }).then(response => {
             if (response.ok) {
                 location.reload();
             } else {
-                alert('Failed to delete product');
+                return response.json().then(data => {
+                    alert('Failed to delete product: ' + (data.message || 'Unknown error'));
+                }).catch(() => {
+                    alert('Failed to delete product. Please try again.');
+                });
             }
+        }).catch(error => {
+            alert('Failed to delete product: ' + error.message);
         });
     }
 }

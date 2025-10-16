@@ -16,7 +16,7 @@ class Product extends Model
         'price',
         'original_price',
         'discount_percentage',
-        'image_url',
+        'image_path',
         'stock_quantity',
         'is_available',
     ];
@@ -27,6 +27,24 @@ class Product extends Model
         'discount_percentage' => 'integer',
         'is_available' => 'boolean',
     ];
+
+    protected $appends = ['image_url'];
+
+    /**
+     * Get the full URL for the product image
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        if ($this->image_path) {
+            // Check if it's already a full URL (external image)
+            if (filter_var($this->image_path, FILTER_VALIDATE_URL)) {
+                return $this->image_path;
+            }
+            // Otherwise, it's a local file path
+            return asset('storage/' . $this->image_path);
+        }
+        return null;
+    }
 
     /**
      * Check if product is in stock

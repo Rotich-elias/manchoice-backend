@@ -75,6 +75,22 @@ class Loan extends Model
     }
 
     /**
+     * Get the loan items (products) for this loan.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(LoanItem::class);
+    }
+
+    /**
+     * Get the total value of products in this loan
+     */
+    public function getTotalProductsValueAttribute(): float
+    {
+        return $this->items()->sum('subtotal');
+    }
+
+    /**
      * Check if loan is overdue.
      */
     public function isOverdue(): bool

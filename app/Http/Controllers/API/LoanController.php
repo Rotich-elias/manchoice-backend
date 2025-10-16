@@ -4,7 +4,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
+use App\Models\LoanItem;
 use App\Models\Customer;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +19,7 @@ class LoanController extends Controller
     public function index(Request $request): JsonResponse
     {
         // Only show loans for customers belonging to the authenticated user
-        $query = Loan::with(['customer', 'payments'])
+        $query = Loan::with(['customer', 'payments', 'items.product'])
             ->whereHas('customer', function($q) use ($request) {
                 $q->where('user_id', $request->user()->id);
             });
@@ -96,6 +98,10 @@ class LoanController extends Controller
             'due_date' => 'nullable|date|after:today',
             'purpose' => 'nullable|string',
             'notes' => 'nullable|string',
+            // Products/items for this loan
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
             // Document uploads
             'bike_photo' => 'nullable|image|max:5120',
             'logbook_photo' => 'nullable|image|max:5120',
@@ -156,6 +162,21 @@ class LoanController extends Controller
                 ...$photoPaths,
             ]);
 
+            // Add loan items if provided
+            if (isset($validated['items']) && !empty($validated['items'])) {
+                foreach ($validated['items'] as $item) {
+                    $product = Product::find($item['product_id']);
+
+                    LoanItem::create([
+                        'loan_id' => $loan->id,
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $product->price,
+                        // subtotal calculated automatically in model
+                    ]);
+                }
+            }
+
             // Update customer loan count
             $customer = Customer::find($validated['customer_id']);
             $customer->increment('loan_count');
@@ -165,7 +186,7 @@ class LoanController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Loan created successfully',
-                'data' => $loan->load('customer')
+                'data' => $loan->load(['customer', 'items.product'])
             ], 201);
 
         } catch (\Exception $e) {
@@ -191,7 +212,7 @@ class LoanController extends Controller
             ], 403);
         }
 
-        $loan->load(['customer', 'payments', 'approver']);
+        $loan->load(['customer', 'payments', 'approver', 'items.product']);
 
         return response()->json([
             'success' => true,
@@ -256,6 +277,34 @@ class LoanController extends Controller
         try {
             DB::beginTransaction();
 
+            // Validate stock availability for loan items
+            $loan->load('items.product');
+            $insufficientStock = [];
+
+            foreach ($loan->items as $item) {
+                if (!$item->product->isInStock() || $item->product->stock_quantity < $item->quantity) {
+                    $insufficientStock[] = [
+                        'product' => $item->product->name,
+                        'required' => $item->quantity,
+                        'available' => $item->product->stock_quantity
+                    ];
+                }
+            }
+
+            if (!empty($insufficientStock)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock for some products',
+                    'insufficient_stock' => $insufficientStock
+                ], 400);
+            }
+
+            // Deduct stock for each loan item
+            foreach ($loan->items as $item) {
+                $product = $item->product;
+                $product->reduceStock($item->quantity);
+            }
+
             $loan->update([
                 'status' => 'approved',
                 'approved_by' => $request->user()->id,
@@ -272,8 +321,8 @@ class LoanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Loan approved successfully',
-                'data' => $loan->load(['customer', 'approver'])
+                'message' => 'Loan approved successfully and stock deducted',
+                'data' => $loan->load(['customer', 'approver', 'items.product'])
             ]);
 
         } catch (\Exception $e) {

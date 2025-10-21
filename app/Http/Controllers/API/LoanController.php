@@ -106,19 +106,25 @@ class LoanController extends Controller
             'bike_photo' => 'nullable|image|max:5120',
             'logbook_photo' => 'nullable|image|max:5120',
             'passport_photo' => 'nullable|image|max:5120',
-            'id_photo' => 'nullable|image|max:5120',
-            'next_of_kin_id_photo' => 'nullable|image|max:5120',
+            'id_photo_front' => 'nullable|image|max:5120',
+            'id_photo_back' => 'nullable|image|max:5120',
+            'next_of_kin_id_front' => 'nullable|image|max:5120',
+            'next_of_kin_id_back' => 'nullable|image|max:5120',
             'next_of_kin_passport_photo' => 'nullable|image|max:5120',
-            'guarantor_id_photo' => 'nullable|image|max:5120',
+            'guarantor_id_front' => 'nullable|image|max:5120',
+            'guarantor_id_back' => 'nullable|image|max:5120',
             'guarantor_passport_photo' => 'nullable|image|max:5120',
             // Or photo paths if already stored locally
             'bike_photo_path' => 'nullable|string',
             'logbook_photo_path' => 'nullable|string',
             'passport_photo_path' => 'nullable|string',
-            'id_photo_path' => 'nullable|string',
-            'next_of_kin_id_photo_path' => 'nullable|string',
+            'id_photo_front_path' => 'nullable|string',
+            'id_photo_back_path' => 'nullable|string',
+            'next_of_kin_id_front_path' => 'nullable|string',
+            'next_of_kin_id_back_path' => 'nullable|string',
             'next_of_kin_passport_photo_path' => 'nullable|string',
-            'guarantor_id_photo_path' => 'nullable|string',
+            'guarantor_id_front_path' => 'nullable|string',
+            'guarantor_id_back_path' => 'nullable|string',
             'guarantor_passport_photo_path' => 'nullable|string',
         ]);
 
@@ -139,7 +145,7 @@ class LoanController extends Controller
 
             // Handle file uploads
             $photoPaths = [];
-            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo', 'next_of_kin_id_photo', 'next_of_kin_passport_photo', 'guarantor_id_photo', 'guarantor_passport_photo'];
+            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo_front', 'id_photo_back', 'next_of_kin_id_front', 'next_of_kin_id_back', 'next_of_kin_passport_photo', 'guarantor_id_front', 'guarantor_id_back', 'guarantor_passport_photo'];
 
             foreach ($photoFields as $field) {
                 if ($request->hasFile($field)) {

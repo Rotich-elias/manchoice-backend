@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\PartRequest;
 use App\Models\Customer;
+use App\Models\PartRequestStatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -18,7 +19,7 @@ class PartRequestController extends Controller
         $user = $request->user();
 
         $partRequests = PartRequest::where('user_id', $user->id)
-            ->with('customer')
+            ->with(['customer', 'statusHistories.user'])
             ->latest()
             ->get();
 
@@ -94,7 +95,7 @@ class PartRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $partRequest->load('customer'),
+            'data' => $partRequest->load(['customer', 'statusHistories.user']),
         ]);
     }
 
@@ -121,10 +122,18 @@ class PartRequestController extends Controller
 
         $partRequest->update(['status' => 'cancelled']);
 
+        // Create status history entry
+        PartRequestStatusHistory::create([
+            'part_request_id' => $partRequest->id,
+            'status' => 'cancelled',
+            'notes' => 'Cancelled by customer',
+            'user_id' => $request->user()->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Part request cancelled successfully',
-            'data' => $partRequest,
+            'data' => $partRequest->load(['customer', 'statusHistories.user']),
         ]);
     }
 }

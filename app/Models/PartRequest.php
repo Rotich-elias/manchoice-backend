@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PartRequest extends Model
 {
@@ -56,5 +57,13 @@ class PartRequest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the status history for this request
+     */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(PartRequestStatusHistory::class)->latest();
     }
 }

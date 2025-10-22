@@ -19,6 +19,7 @@
                     <a href="/admin/loans" class="hover:text-blue-200">Loans</a>
                     <a href="/admin/payments" class="hover:text-blue-200">Payments</a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
+                    <a href="/admin/part-requests" class="hover:text-blue-200">Part Requests</a>
                     <form method="POST" action="/admin/logout" class="inline">
                         @csrf
                         <button type="submit" class="hover:text-blue-200">Logout</button>

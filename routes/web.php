@@ -22,6 +22,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
     Route::get('/customers', [DashboardController::class, 'customers']);
     Route::get('/customers/{id}', [DashboardController::class, 'customerDetail']);
+    Route::post('/customers/{id}/update-credit-limit', [DashboardController::class, 'updateCreditLimit']);
     Route::get('/loans', [DashboardController::class, 'loans']);
     Route::get('/loans/{id}', [DashboardController::class, 'loanDetail']);
     Route::get('/products', [DashboardController::class, 'products']);

@@ -26,7 +26,15 @@
         </div>
     </div>
     <div class="bg-white rounded-lg shadow p-6">
-        <div class="text-sm text-gray-500 mb-1">Credit Limit</div>
+        <div class="flex justify-between items-start mb-1">
+            <div class="text-sm text-gray-500">Credit Limit</div>
+            <button onclick="openCreditLimitModal()" class="text-blue-600 hover:text-blue-800 text-sm">
+                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit
+            </button>
+        </div>
         <div class="text-2xl font-bold text-blue-600">KES {{ number_format($customer->credit_limit, 2) }}</div>
     </div>
     <div class="bg-white rounded-lg shadow p-6">
@@ -432,6 +440,62 @@
         <p class="text-gray-700 whitespace-pre-line">{{ $customer->notes }}</p>
     </div>
 </div>
+@endif
+
+<!-- Credit Limit Update Modal -->
+<div id="creditLimitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Update Credit Limit</h3>
+            <form method="POST" action="/admin/customers/{{ $customer->id }}/update-credit-limit">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="credit_limit">
+                        Credit Limit (KES)
+                    </label>
+                    <input type="number" step="0.01" min="0" name="credit_limit" id="credit_limit"
+                           value="{{ $customer->credit_limit }}"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           required>
+                </div>
+                <div class="flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeCreditLimitModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Update Credit Limit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCreditLimitModal() {
+    document.getElementById('creditLimitModal').classList.remove('hidden');
+}
+
+function closeCreditLimitModal() {
+    document.getElementById('creditLimitModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('creditLimitModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCreditLimitModal();
+    }
+});
+</script>
+
+@if(session('success'))
+<script>
+    setTimeout(() => {
+        alert('{{ session('success') }}');
+    }, 100);
+</script>
 @endif
 
 @endsection

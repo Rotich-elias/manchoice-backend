@@ -47,6 +47,21 @@ class DashboardController extends Controller
         return view('admin.customer-detail', compact('customer'));
     }
 
+    public function updateCreditLimit(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $validated = $request->validate([
+            'credit_limit' => 'required|numeric|min:0',
+        ]);
+
+        $customer->update([
+            'credit_limit' => $validated['credit_limit'],
+        ]);
+
+        return back()->with('success', 'Credit limit updated successfully');
+    }
+
     public function loans(Request $request)
     {
         $query = Loan::with(['customer', 'approver']);

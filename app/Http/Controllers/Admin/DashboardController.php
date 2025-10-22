@@ -38,6 +38,15 @@ class DashboardController extends Controller
         return view('admin.customers', compact('customers'));
     }
 
+    public function customerDetail($id)
+    {
+        $customer = Customer::with(['loans' => function($query) {
+            $query->latest();
+        }])->findOrFail($id);
+
+        return view('admin.customer-detail', compact('customer'));
+    }
+
     public function loans(Request $request)
     {
         $query = Loan::with(['customer', 'approver']);

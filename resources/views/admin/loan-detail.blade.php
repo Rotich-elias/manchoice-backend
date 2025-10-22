@@ -481,56 +481,136 @@ function toggleQuickMpesaFields(select) {
         </div>
         @endif
 
-        <!-- ID Photo -->
-        @if($loan->id_photo_path)
+        <!-- ID Photo Front -->
+        @if($loan->id_photo_front_path)
         <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
             <h3 class="font-semibold mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
                 </svg>
-                National ID Photo
+                National ID (Front)
             </h3>
-            <img src="{{ str_starts_with($loan->id_photo_path, 'http') ? $loan->id_photo_path : asset('storage/' . $loan->id_photo_path) }}"
-                 alt="National ID" class="w-full h-48 object-cover rounded mb-2 border">
-            <a href="{{ str_starts_with($loan->id_photo_path, 'http') ? $loan->id_photo_path : asset('storage/' . $loan->id_photo_path) }}"
+            <img src="{{ str_starts_with($loan->id_photo_front_path, 'http') ? $loan->id_photo_front_path : asset('storage/' . $loan->id_photo_front_path) }}"
+                 alt="National ID Front" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->id_photo_front_path, 'http') ? $loan->id_photo_front_path : asset('storage/' . $loan->id_photo_front_path) }}"
                target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
         </div>
         @endif
 
-        <!-- Next of Kin ID Photo -->
-        @if($loan->next_of_kin_id_photo_path)
+        <!-- ID Photo Back -->
+        @if($loan->id_photo_back_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                </svg>
+                National ID (Back)
+            </h3>
+            <img src="{{ str_starts_with($loan->id_photo_back_path, 'http') ? $loan->id_photo_back_path : asset('storage/' . $loan->id_photo_back_path) }}"
+                 alt="National ID Back" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->id_photo_back_path, 'http') ? $loan->id_photo_back_path : asset('storage/' . $loan->id_photo_back_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Next of Kin ID Front -->
+        @if($loan->next_of_kin_id_front_path)
         <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
             <h3 class="font-semibold mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
-                Next of Kin ID Photo
+                Next of Kin ID (Front)
             </h3>
-            <img src="{{ str_starts_with($loan->next_of_kin_id_photo_path, 'http') ? $loan->next_of_kin_id_photo_path : asset('storage/' . $loan->next_of_kin_id_photo_path) }}"
-                 alt="Next of Kin ID" class="w-full h-48 object-cover rounded mb-2 border">
-            <a href="{{ str_starts_with($loan->next_of_kin_id_photo_path, 'http') ? $loan->next_of_kin_id_photo_path : asset('storage/' . $loan->next_of_kin_id_photo_path) }}"
+            <img src="{{ str_starts_with($loan->next_of_kin_id_front_path, 'http') ? $loan->next_of_kin_id_front_path : asset('storage/' . $loan->next_of_kin_id_front_path) }}"
+                 alt="Next of Kin ID Front" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->next_of_kin_id_front_path, 'http') ? $loan->next_of_kin_id_front_path : asset('storage/' . $loan->next_of_kin_id_front_path) }}"
                target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
         </div>
         @endif
 
-        <!-- Guarantor ID Photo -->
-        @if($loan->guarantor_id_photo_path)
+        <!-- Next of Kin ID Back -->
+        @if($loan->next_of_kin_id_back_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Next of Kin ID (Back)
+            </h3>
+            <img src="{{ str_starts_with($loan->next_of_kin_id_back_path, 'http') ? $loan->next_of_kin_id_back_path : asset('storage/' . $loan->next_of_kin_id_back_path) }}"
+                 alt="Next of Kin ID Back" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->next_of_kin_id_back_path, 'http') ? $loan->next_of_kin_id_back_path : asset('storage/' . $loan->next_of_kin_id_back_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Next of Kin Passport Photo -->
+        @if($loan->next_of_kin_passport_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Next of Kin Passport Photo
+            </h3>
+            <img src="{{ str_starts_with($loan->next_of_kin_passport_photo_path, 'http') ? $loan->next_of_kin_passport_photo_path : asset('storage/' . $loan->next_of_kin_passport_photo_path) }}"
+                 alt="Next of Kin Passport Photo" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->next_of_kin_passport_photo_path, 'http') ? $loan->next_of_kin_passport_photo_path : asset('storage/' . $loan->next_of_kin_passport_photo_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Guarantor ID Front -->
+        @if($loan->guarantor_id_front_path)
         <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
             <h3 class="font-semibold mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
-                Guarantor ID Photo
+                Guarantor ID (Front)
             </h3>
-            <img src="{{ str_starts_with($loan->guarantor_id_photo_path, 'http') ? $loan->guarantor_id_photo_path : asset('storage/' . $loan->guarantor_id_photo_path) }}"
-                 alt="Guarantor ID" class="w-full h-48 object-cover rounded mb-2 border">
-            <a href="{{ str_starts_with($loan->guarantor_id_photo_path, 'http') ? $loan->guarantor_id_photo_path : asset('storage/' . $loan->guarantor_id_photo_path) }}"
+            <img src="{{ str_starts_with($loan->guarantor_id_front_path, 'http') ? $loan->guarantor_id_front_path : asset('storage/' . $loan->guarantor_id_front_path) }}"
+                 alt="Guarantor ID Front" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->guarantor_id_front_path, 'http') ? $loan->guarantor_id_front_path : asset('storage/' . $loan->guarantor_id_front_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Guarantor ID Back -->
+        @if($loan->guarantor_id_back_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                Guarantor ID (Back)
+            </h3>
+            <img src="{{ str_starts_with($loan->guarantor_id_back_path, 'http') ? $loan->guarantor_id_back_path : asset('storage/' . $loan->guarantor_id_back_path) }}"
+                 alt="Guarantor ID Back" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->guarantor_id_back_path, 'http') ? $loan->guarantor_id_back_path : asset('storage/' . $loan->guarantor_id_back_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Guarantor Passport Photo -->
+        @if($loan->guarantor_passport_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Guarantor Passport Photo
+            </h3>
+            <img src="{{ str_starts_with($loan->guarantor_passport_photo_path, 'http') ? $loan->guarantor_passport_photo_path : asset('storage/' . $loan->guarantor_passport_photo_path) }}"
+                 alt="Guarantor Passport Photo" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->guarantor_passport_photo_path, 'http') ? $loan->guarantor_passport_photo_path : asset('storage/' . $loan->guarantor_passport_photo_path) }}"
                target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
         </div>
         @endif
     </div>
 
-    @if(!$loan->bike_photo_path && !$loan->logbook_photo_path && !$loan->passport_photo_path && !$loan->id_photo_path && !$loan->next_of_kin_id_photo_path && !$loan->guarantor_id_photo_path)
+    @if(!$loan->bike_photo_path && !$loan->logbook_photo_path && !$loan->passport_photo_path && !$loan->id_photo_front_path && !$loan->id_photo_back_path && !$loan->next_of_kin_id_front_path && !$loan->next_of_kin_id_back_path && !$loan->next_of_kin_passport_photo_path && !$loan->guarantor_id_front_path && !$loan->guarantor_id_back_path && !$loan->guarantor_passport_photo_path)
     <p class="text-gray-500 text-center py-8">No documents uploaded for this application</p>
     @endif
 </div>

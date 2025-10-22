@@ -43,6 +43,16 @@ class Customer extends Model
         'guarantor_relationship',
         'guarantor_email',
         'guarantor_passport_photo_path',
+        // Document Photos (stored on customer profile for reuse)
+        'bike_photo_path',
+        'logbook_photo_path',
+        'passport_photo_path',
+        'id_photo_front_path',
+        'id_photo_back_path',
+        'next_of_kin_id_front_path',
+        'next_of_kin_id_back_path',
+        'guarantor_id_front_path',
+        'guarantor_id_back_path',
     ];
 
     protected $casts = [

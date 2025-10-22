@@ -7,27 +7,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | Available product categories for Man's Choice Enterprise.
-    | These categories are used in the admin panel and API responses.
+    | These categories are specifically for motorcycle spare parts.
     |
     */
 
     'categories' => [
         'Engine Parts',
-        'Electrical',
-        'Tires',
-        'Body Parts',
-        'Transmission',
+        'Body & Frame',
+        'Electrical & Lighting',
+        'Tires & Wheels',
         'Accessories',
-        'Brakes',
-        'Suspension',
-        'Exhaust',
-        'Filters',
-        'Belts & Hoses',
-        'Lighting',
-        'Interior',
-        'Exterior',
-        'Tools',
-        'Fluids & Chemicals',
-        'Other',
     ],
 ];

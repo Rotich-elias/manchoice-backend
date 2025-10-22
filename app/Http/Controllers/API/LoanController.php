@@ -132,15 +132,15 @@ class LoanController extends Controller
             DB::beginTransaction();
 
             // Calculate total amount
-            $interestRate = $validated['interest_rate'] ?? 0;
-            $totalAmount = $validated['principal_amount'] * (1 + ($interestRate / 100));
+            $interestRate = (float)($validated['interest_rate'] ?? 0);
+            $totalAmount = (float)$validated['principal_amount'] * (1 + ($interestRate / 100));
 
             // Generate loan number
             $loanNumber = 'LN' . date('Ymd') . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
 
             // Calculate due date if duration is provided
             if (isset($validated['duration_days']) && !isset($validated['due_date'])) {
-                $validated['due_date'] = now()->addDays($validated['duration_days'])->toDateString();
+                $validated['due_date'] = now()->addDays((int)$validated['duration_days'])->toDateString();
             }
 
             // Handle file uploads
@@ -167,6 +167,12 @@ class LoanController extends Controller
                 'status' => 'pending',
                 ...$photoPaths,
             ]);
+
+            // Update customer profile with latest document photos for future reuse
+            $customer = Customer::find($validated['customer_id']);
+            if (!empty($photoPaths)) {
+                $customer->update($photoPaths);
+            }
 
             // Add loan items if provided
             if (isset($validated['items']) && !empty($validated['items'])) {

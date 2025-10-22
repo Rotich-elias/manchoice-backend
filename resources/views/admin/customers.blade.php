@@ -3,8 +3,22 @@
 @section('title', 'Customers')
 
 @section('content')
-<div class="mb-6">
+<div class="mb-6 flex justify-between items-center">
     <h1 class="text-3xl font-bold text-gray-800">Customers</h1>
+    <div class="flex space-x-2">
+        <a href="/admin/reports/customers?format=pdf" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            Export PDF
+        </a>
+        <a href="/admin/reports/customers?format=excel" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Export Excel
+        </a>
+    </div>
 </div>
 
 <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -19,6 +33,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Paid</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loans</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -51,10 +66,15 @@
                         {{ ucfirst($customer->status) }}
                     </span>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <a href="/admin/customers/{{ $customer->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                        View
+                    </a>
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="px-6 py-4 text-center text-gray-500">No customers found</td>
+                <td colspan="9" class="px-6 py-4 text-center text-gray-500">No customers found</td>
             </tr>
             @endforelse
         </tbody>

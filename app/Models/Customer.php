@@ -61,6 +61,108 @@ class Customer extends Model
         'total_paid' => 'decimal:2',
     ];
 
+    protected $appends = [
+        'bike_photo_url',
+        'logbook_photo_url',
+        'passport_photo_url',
+        'id_photo_front_url',
+        'id_photo_back_url',
+        'next_of_kin_id_front_url',
+        'next_of_kin_id_back_url',
+        'next_of_kin_passport_photo_url',
+        'guarantor_id_front_url',
+        'guarantor_id_back_url',
+        'guarantor_passport_photo_url',
+    ];
+
+    /**
+     * Get the full URL for bike photo
+     */
+    public function getBikePhotoUrlAttribute(): ?string
+    {
+        return $this->bike_photo_path ? asset('storage/' . $this->bike_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for logbook photo
+     */
+    public function getLogbookPhotoUrlAttribute(): ?string
+    {
+        return $this->logbook_photo_path ? asset('storage/' . $this->logbook_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for passport photo
+     */
+    public function getPassportPhotoUrlAttribute(): ?string
+    {
+        return $this->passport_photo_path ? asset('storage/' . $this->passport_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for ID photo front
+     */
+    public function getIdPhotoFrontUrlAttribute(): ?string
+    {
+        return $this->id_photo_front_path ? asset('storage/' . $this->id_photo_front_path) : null;
+    }
+
+    /**
+     * Get the full URL for ID photo back
+     */
+    public function getIdPhotoBackUrlAttribute(): ?string
+    {
+        return $this->id_photo_back_path ? asset('storage/' . $this->id_photo_back_path) : null;
+    }
+
+    /**
+     * Get the full URL for next of kin ID front
+     */
+    public function getNextOfKinIdFrontUrlAttribute(): ?string
+    {
+        return $this->next_of_kin_id_front_path ? asset('storage/' . $this->next_of_kin_id_front_path) : null;
+    }
+
+    /**
+     * Get the full URL for next of kin ID back
+     */
+    public function getNextOfKinIdBackUrlAttribute(): ?string
+    {
+        return $this->next_of_kin_id_back_path ? asset('storage/' . $this->next_of_kin_id_back_path) : null;
+    }
+
+    /**
+     * Get the full URL for guarantor ID front
+     */
+    public function getGuarantorIdFrontUrlAttribute(): ?string
+    {
+        return $this->guarantor_id_front_path ? asset('storage/' . $this->guarantor_id_front_path) : null;
+    }
+
+    /**
+     * Get the full URL for guarantor ID back
+     */
+    public function getGuarantorIdBackUrlAttribute(): ?string
+    {
+        return $this->guarantor_id_back_path ? asset('storage/' . $this->guarantor_id_back_path) : null;
+    }
+
+    /**
+     * Get the full URL for next of kin passport photo
+     */
+    public function getNextOfKinPassportPhotoUrlAttribute(): ?string
+    {
+        return $this->next_of_kin_passport_photo_path ? asset('storage/' . $this->next_of_kin_passport_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for guarantor passport photo
+     */
+    public function getGuarantorPassportPhotoUrlAttribute(): ?string
+    {
+        return $this->guarantor_passport_photo_path ? asset('storage/' . $this->guarantor_passport_photo_path) : null;
+    }
+
     /**
      * Get the loans for the customer.
      */

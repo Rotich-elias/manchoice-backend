@@ -173,7 +173,8 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Discount Percentage (%)</label>
-                    <input type="number" name="discount_percentage" id="productDiscount" min="0" max="100" value="0" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                    <input type="number" name="discount_percentage" id="productDiscount" min="0" max="100" value="0" readonly class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100">
+                    <p class="text-xs text-gray-500 mt-1">Auto-calculated from original and current price</p>
                 </div>
 
                 <div>
@@ -270,6 +271,23 @@ function deleteProduct(id) {
         });
     }
 }
+
+// Auto-calculate discount percentage
+function calculateDiscount() {
+    const originalPrice = parseFloat(document.getElementById('productOriginalPrice').value) || 0;
+    const currentPrice = parseFloat(document.getElementById('productPrice').value) || 0;
+
+    if (originalPrice > 0 && currentPrice > 0 && currentPrice < originalPrice) {
+        const discountPercentage = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+        document.getElementById('productDiscount').value = discountPercentage;
+    } else {
+        document.getElementById('productDiscount').value = 0;
+    }
+}
+
+// Add event listeners for price changes
+document.getElementById('productOriginalPrice').addEventListener('input', calculateDiscount);
+document.getElementById('productPrice').addEventListener('input', calculateDiscount);
 
 // Close modal when clicking outside
 document.getElementById('productModal').addEventListener('click', function(e) {

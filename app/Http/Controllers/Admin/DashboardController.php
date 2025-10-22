@@ -76,7 +76,7 @@ class DashboardController extends Controller
 
     public function approveLoan($id)
     {
-        $loan = Loan::findOrFail($id);
+        $loan = Loan::with('items.product')->findOrFail($id);
 
         if ($loan->status !== 'pending') {
             return back()->with('error', 'Only pending loans can be approved');
@@ -84,6 +84,24 @@ class DashboardController extends Controller
 
         if (!auth()->check()) {
             return back()->with('error', 'You must be logged in to approve loans');
+        }
+
+        // Check if there are items and verify stock availability
+        if ($loan->items && $loan->items->count() > 0) {
+            foreach ($loan->items as $item) {
+                $product = $item->product;
+                if ($product && (!$product->isInStock() || $product->stock_quantity < $item->quantity)) {
+                    return back()->with('error', "Insufficient stock for product: {$product->name}. Available: {$product->stock_quantity}, Required: {$item->quantity}");
+                }
+            }
+
+            // Deduct stock quantities
+            foreach ($loan->items as $item) {
+                $product = $item->product;
+                if ($product) {
+                    $product->reduceStock($item->quantity);
+                }
+            }
         }
 
         $loan->update([
@@ -97,7 +115,7 @@ class DashboardController extends Controller
         $customer->total_borrowed += $loan->total_amount;
         $customer->save();
 
-        return back()->with('success', 'Loan approved successfully');
+        return back()->with('success', 'Loan approved successfully and stock quantities updated');
     }
 
     public function rejectLoan(Request $request, $id)
@@ -155,9 +173,16 @@ class DashboardController extends Controller
             $validated['image_path'] = $imagePath;
         }
 
+        // Auto-calculate discount percentage from original_price and price
+        if (isset($validated['original_price']) && $validated['original_price'] > 0 && $validated['price'] < $validated['original_price']) {
+            $validated['discount_percentage'] = round((($validated['original_price'] - $validated['price']) / $validated['original_price']) * 100);
+        } else {
+            $validated['discount_percentage'] = 0;
+            $validated['original_price'] = null; // Clear original price if no discount
+        }
+
         // Set defaults
         $validated['is_available'] = $validated['is_available'] ?? true;
-        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
 
         // Remove 'image' from validated data as it's not a database field
         unset($validated['image']);
@@ -195,8 +220,13 @@ class DashboardController extends Controller
             $validated['image_path'] = $imagePath;
         }
 
-        // Set defaults
-        $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+        // Auto-calculate discount percentage from original_price and price
+        if (isset($validated['original_price']) && $validated['original_price'] > 0 && $validated['price'] < $validated['original_price']) {
+            $validated['discount_percentage'] = round((($validated['original_price'] - $validated['price']) / $validated['original_price']) * 100);
+        } else {
+            $validated['discount_percentage'] = 0;
+            $validated['original_price'] = null; // Clear original price if no discount
+        }
 
         // Remove 'image' from validated data as it's not a database field
         unset($validated['image']);

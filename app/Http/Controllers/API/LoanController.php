@@ -131,9 +131,46 @@ class LoanController extends Controller
         try {
             DB::beginTransaction();
 
+            // Get customer and check status
+            $customer = Customer::find($validated['customer_id']);
+
+            // Check customer status
+            if ($customer->status === 'blacklisted') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot create loan. Customer account is blacklisted.',
+                ], 403);
+            }
+
+            if ($customer->status === 'inactive') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot create loan. Customer account is inactive.',
+                ], 403);
+            }
+
             // Calculate total amount
             $interestRate = (float)($validated['interest_rate'] ?? 0);
             $totalAmount = (float)$validated['principal_amount'] * (1 + ($interestRate / 100));
+
+            // Check credit limit (only if credit_limit > 0)
+            if ($customer->credit_limit > 0) {
+                $outstandingBalance = $customer->total_borrowed - $customer->total_paid;
+                $availableCredit = $customer->credit_limit - $outstandingBalance;
+
+                if ($totalAmount > $availableCredit) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Loan amount exceeds your available credit limit',
+                        'data' => [
+                            'credit_limit' => number_format($customer->credit_limit, 2),
+                            'outstanding_balance' => number_format($outstandingBalance, 2),
+                            'available_credit' => number_format($availableCredit, 2),
+                            'requested_amount' => number_format($totalAmount, 2),
+                        ]
+                    ], 400);
+                }
+            }
 
             // Generate loan number
             $loanNumber = 'LN' . date('Ymd') . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);

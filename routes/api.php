@@ -6,6 +6,7 @@ use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\LoanController;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\MpesaController;
+use App\Http\Controllers\API\PartRequestController;
 use App\Http\Controllers\API\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('products/{product}', [ProductController::class, 'destroy']);
     Route::post('products/{product}/update-stock', [ProductController::class, 'updateStock']);
     Route::post('products/{product}/toggle-availability', [ProductController::class, 'toggleAvailability']);
+
+    // Part Request routes
+    Route::get('part-requests', [PartRequestController::class, 'index']);
+    Route::post('part-requests', [PartRequestController::class, 'store']);
+    Route::get('part-requests/{partRequest}', [PartRequestController::class, 'show']);
+    Route::post('part-requests/{partRequest}/cancel', [PartRequestController::class, 'cancel']);
 
 });
 

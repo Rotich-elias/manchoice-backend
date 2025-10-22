@@ -86,6 +86,31 @@ class DashboardController extends Controller
             return back()->with('error', 'You must be logged in to approve loans');
         }
 
+        // Get customer and check status
+        $customer = $loan->customer;
+
+        // Check customer status
+        if ($customer->status === 'blacklisted') {
+            return back()->with('error', 'Cannot approve loan. Customer account is blacklisted.');
+        }
+
+        if ($customer->status === 'inactive') {
+            return back()->with('error', 'Cannot approve loan. Customer account is inactive.');
+        }
+
+        // Check credit limit (only if credit_limit > 0)
+        if ($customer->credit_limit > 0) {
+            $outstandingBalance = $customer->total_borrowed - $customer->total_paid;
+            $availableCredit = $customer->credit_limit - $outstandingBalance;
+
+            if ($loan->total_amount > $availableCredit) {
+                return back()->with('error',
+                    "Cannot approve loan. Loan amount (KSh " . number_format($loan->total_amount, 2) .
+                    ") exceeds customer's available credit (KSh " . number_format($availableCredit, 2) .
+                    "). Outstanding balance: KSh " . number_format($outstandingBalance, 2));
+            }
+        }
+
         // Check if there are items and verify stock availability
         if ($loan->items && $loan->items->count() > 0) {
             foreach ($loan->items as $item) {

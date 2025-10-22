@@ -27,10 +27,7 @@
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit Limit</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Borrowed</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Paid</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit Info</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loans</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
@@ -45,16 +42,39 @@
                     <div class="text-sm text-gray-500">ID: {{ $customer->id_number }}</div>
                     @endif
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ $customer->phone }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ $customer->email ?? 'N/A' }}</td>
-                <td class="px-6 py-4 whitespace-nowrap font-semibold">
-                    KES {{ number_format($customer->credit_limit, 2) }}
-                </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    KES {{ number_format($customer->total_borrowed, 2) }}
+                    <div>{{ $customer->phone }}</div>
+                    @if($customer->email)
+                    <div class="text-xs text-gray-500">{{ $customer->email }}</div>
+                    @endif
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-green-600">
-                    KES {{ number_format($customer->total_paid, 2) }}
+                <td class="px-6 py-4">
+                    @php
+                        $outstanding = $customer->total_borrowed - $customer->total_paid;
+                        $available = $customer->credit_limit - $outstanding;
+                        $percentage = $customer->credit_limit > 0 ? ($outstanding / $customer->credit_limit) * 100 : 0;
+                        $barColor = $percentage >= 80 ? 'bg-red-600' : ($percentage >= 50 ? 'bg-yellow-500' : 'bg-green-600');
+                    @endphp
+                    <div class="min-w-[200px]">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-600">Limit:</span>
+                            <span class="font-semibold">KSh {{ number_format($customer->credit_limit) }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-600">Outstanding:</span>
+                            <span class="font-semibold text-red-600">KSh {{ number_format($outstanding) }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-600">Available:</span>
+                            <span class="font-semibold text-green-600">KSh {{ number_format($available) }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="{{ $barColor }} h-2 rounded-full transition-all duration-300"
+                                 style="width: {{ min($percentage, 100) }}%"
+                                 title="{{ number_format($percentage, 1) }}% used"></div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center mt-1">{{ number_format($percentage, 1) }}% used</div>
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
@@ -62,7 +82,7 @@
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 text-xs rounded-full {{ $customer->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                    <span class="px-2 py-1 text-xs rounded-full {{ $customer->status === 'active' ? 'bg-green-100 text-green-800' : ($customer->status === 'blacklisted' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800') }}">
                         {{ ucfirst($customer->status) }}
                     </span>
                 </td>
@@ -74,7 +94,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="9" class="px-6 py-4 text-center text-gray-500">No customers found</td>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No customers found</td>
             </tr>
             @endforelse
         </tbody>

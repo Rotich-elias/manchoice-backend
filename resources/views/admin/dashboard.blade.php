@@ -8,7 +8,7 @@
 </div>
 
 <!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
     <div class="bg-white p-6 rounded-lg shadow">
         <div class="text-gray-500 text-sm">Total Customers</div>
         <div class="text-3xl font-bold text-blue-600">{{ $stats['customers'] }}</div>
@@ -24,6 +24,10 @@
     <div class="bg-white p-6 rounded-lg shadow">
         <div class="text-gray-500 text-sm">Active Loans</div>
         <div class="text-3xl font-bold text-purple-600">{{ $stats['active_loans'] }}</div>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-gray-500 text-sm">Defaulted Loans</div>
+        <div class="text-3xl font-bold text-red-600">{{ $stats['defaulted_loans'] }}</div>
     </div>
 </div>
 
@@ -84,6 +88,62 @@
                                 Approve
                             </button>
                         </form>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
+<!-- Defaulted Loans -->
+@if($defaultedLoans->count() > 0)
+<div class="bg-white p-6 rounded-lg shadow mb-8 border-l-4 border-red-500">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-red-700">⚠ Defaulted Loans (Missed Payments)</h2>
+        <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+            {{ $defaultedLoans->count() }} Loan(s)
+        </span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full">
+            <thead class="bg-red-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Loan Number</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Customer</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Total Amount</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Balance</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Due Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                @foreach($defaultedLoans as $loan)
+                <tr class="hover:bg-red-50">
+                    <td class="px-6 py-4 whitespace-nowrap font-semibold text-red-700">{{ $loan->loan_number }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="/admin/customers/{{ $loan->customer->id }}" class="text-blue-600 hover:underline">
+                            {{ $loan->customer->name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">KES {{ number_format($loan->total_amount, 2) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-red-600 font-bold">KES {{ number_format($loan->balance, 2) }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        @if($loan->due_date)
+                            <span class="text-red-600">{{ $loan->due_date->format('M d, Y') }}</span>
+                            <br>
+                            <span class="text-xs text-gray-500">({{ $loan->due_date->diffForHumans() }})</span>
+                        @else
+                            N/A
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="/admin/loans/{{ $loan->id }}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm">
+                            View Details
+                        </a>
                     </td>
                 </tr>
                 @endforeach

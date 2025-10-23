@@ -8,6 +8,7 @@ use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\MpesaController;
 use App\Http\Controllers\API\PartRequestController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -41,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('loans', LoanController::class);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve']);
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject']);
+    Route::get('loans/{loan}/payment-schedule', [LoanController::class, 'getPaymentSchedule']);
+    Route::get('loans-defaulted', [LoanController::class, 'getDefaultedLoans']);
 
     // Payment routes
     Route::apiResource('payments', PaymentController::class);
@@ -64,6 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('part-requests', [PartRequestController::class, 'store']);
     Route::get('part-requests/{partRequest}', [PartRequestController::class, 'show']);
     Route::post('part-requests/{partRequest}/cancel', [PartRequestController::class, 'cancel']);
+
+    // Support Tickets routes
+    Route::get('support-tickets', [SupportTicketController::class, 'index']);
+    Route::post('support-tickets', [SupportTicketController::class, 'store']);
+    Route::get('support-tickets/{id}', [SupportTicketController::class, 'show']);
 
 });
 

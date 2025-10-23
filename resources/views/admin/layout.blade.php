@@ -20,6 +20,17 @@
                     <a href="/admin/payments" class="hover:text-blue-200">Payments</a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
                     <a href="/admin/part-requests" class="hover:text-blue-200">Part Requests</a>
+                    <a href="/admin/support-tickets" class="hover:text-blue-200 relative">
+                        Support
+                        @php
+                            $openTickets = \App\Models\SupportTicket::where('status', 'open')->count();
+                        @endphp
+                        @if($openTickets > 0)
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $openTickets }}
+                            </span>
+                        @endif
+                    </a>
                     <form method="POST" action="/admin/logout" class="inline">
                         @csrf
                         <button type="submit" class="hover:text-blue-200">Logout</button>

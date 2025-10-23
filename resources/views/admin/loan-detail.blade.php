@@ -227,6 +227,35 @@
         </div>
     </div>
 
+    @if($loan->daily_payment_amount)
+    <div class="mt-6 pt-6 border-t">
+        <h3 class="text-lg font-semibold mb-4 text-gray-700">Payment Plan</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-blue-50 p-4 rounded-lg">
+            <div>
+                <span class="text-gray-600 text-sm">Recommended Daily Payment</span>
+                <div class="text-xl font-bold text-blue-700">KES {{ number_format($loan->daily_payment_amount, 2) }}</div>
+            </div>
+            <div>
+                <span class="text-gray-600 text-sm">Payment Duration</span>
+                <div class="text-xl font-bold text-blue-700">{{ $loan->adjusted_duration_days }} day(s)</div>
+            </div>
+            <div>
+                <span class="text-gray-600 text-sm">Final Due Date</span>
+                <div class="text-xl font-bold text-blue-700">{{ $loan->due_date ? $loan->due_date->format('M d, Y') : 'N/A' }}</div>
+            </div>
+        </div>
+        @if($loan->daily_payment_amount == $loan->total_amount && $loan->adjusted_duration_days == 1)
+        <div class="mt-3 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+            <p class="text-sm"><strong>Note:</strong> Total amount is below minimum daily payment (KES 200). Full amount payable in one payment.</p>
+        </div>
+        @elseif($loan->adjusted_duration_days < $loan->duration_days)
+        <div class="mt-3 p-3 bg-blue-100 border-l-4 border-blue-500 text-blue-800 rounded">
+            <p class="text-sm"><strong>Note:</strong> Duration adjusted from {{ $loan->duration_days }} days to {{ $loan->adjusted_duration_days }} days to meet minimum daily payment of KES 200.</p>
+        </div>
+        @endif
+    </div>
+    @endif
+
     @if($loan->purpose || $loan->notes)
     <div class="mt-6 pt-6 border-t">
         @if($loan->purpose)

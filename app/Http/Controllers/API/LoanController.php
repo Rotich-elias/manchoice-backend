@@ -456,4 +456,102 @@ class LoanController extends Controller
             'message' => 'Loan deleted successfully'
         ]);
     }
+
+    /**
+     * Get payment schedule for a loan
+     */
+    public function getPaymentSchedule(Loan $loan): JsonResponse
+    {
+        // Check if user is authorized to view this loan
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        // Allow if user owns the loan or is admin
+        if ($loan->customer->user_id !== $user->id && !$user->is_admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $schedule = $loan->paymentSchedule()
+            ->orderBy('day_number')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'day_number' => $item->day_number,
+                    'due_date' => $item->due_date->format('Y-m-d'),
+                    'expected_amount' => (float) $item->expected_amount,
+                    'paid_amount' => (float) $item->paid_amount,
+                    'remaining_amount' => (float) $item->remaining_amount,
+                    'status' => $item->status,
+                    'is_overdue' => $item->isOverdue(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'loan_id' => $loan->id,
+                'loan_number' => $loan->loan_number,
+                'daily_payment_amount' => (float) $loan->daily_payment_amount,
+                'adjusted_duration_days' => $loan->adjusted_duration_days,
+                'total_amount' => (float) $loan->total_amount,
+                'schedule' => $schedule,
+            ]
+        ]);
+    }
+
+    /**
+     * Get all defaulted loans (admin or user's own)
+     */
+    public function getDefaultedLoans(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $query = Loan::with(['customer', 'paymentSchedule'])
+            ->where('status', 'defaulted');
+
+        // If not admin, only show user's own loans
+        if (!$user->is_admin) {
+            $query->whereHas('customer', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+
+        $loans = $query->latest()->get()->map(function ($loan) {
+            return [
+                'id' => $loan->id,
+                'loan_number' => $loan->loan_number,
+                'customer_name' => $loan->customer->name,
+                'customer_id' => $loan->customer_id,
+                'total_amount' => (float) $loan->total_amount,
+                'balance' => (float) $loan->balance,
+                'amount_paid' => (float) $loan->amount_paid,
+                'daily_payment_amount' => (float) $loan->daily_payment_amount,
+                'missed_payments' => $loan->getMissedPaymentsCount(),
+                'overdue_amount' => (float) $loan->getOverdueAmount(),
+                'due_date' => $loan->due_date ? $loan->due_date->format('Y-m-d') : null,
+                'created_at' => $loan->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $loans,
+            'count' => $loans->count(),
+        ]);
+    }
 }

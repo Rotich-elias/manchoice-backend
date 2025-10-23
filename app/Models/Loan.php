@@ -23,6 +23,8 @@ class Loan extends Model
         'disbursement_date',
         'due_date',
         'duration_days',
+        'daily_payment_amount',
+        'adjusted_duration_days',
         'purpose',
         'notes',
         'approved_by',
@@ -48,6 +50,7 @@ class Loan extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'balance' => 'decimal:2',
+        'daily_payment_amount' => 'decimal:2',
         'disbursement_date' => 'date',
         'due_date' => 'date',
         'approved_at' => 'datetime',
@@ -86,6 +89,14 @@ class Loan extends Model
     }
 
     /**
+     * Get the payment schedule for this loan.
+     */
+    public function paymentSchedule(): HasMany
+    {
+        return $this->hasMany(PaymentSchedule::class);
+    }
+
+    /**
      * Get the total value of products in this loan
      */
     public function getTotalProductsValueAttribute(): float
@@ -115,5 +126,143 @@ class Loan extends Model
         }
 
         return now()->diffInDays($this->due_date);
+    }
+
+    /**
+     * Check if loan should be marked as defaulted based on missed daily payments.
+     * A loan is considered defaulted if:
+     * - It has overdue payment schedule items
+     * - Has missed 3 or more consecutive daily payments
+     */
+    public function shouldBeDefaulted(): bool
+    {
+        if (!in_array($this->status, ['approved', 'active'])) {
+            return false;
+        }
+
+        // Check payment schedule for overdue items
+        $overdueCount = $this->paymentSchedule()
+            ->where('status', '!=', 'paid')
+            ->where('due_date', '<', now())
+            ->count();
+
+        // Default if 3 or more payments are overdue
+        return $overdueCount >= 3;
+    }
+
+    /**
+     * Get count of missed payments
+     */
+    public function getMissedPaymentsCount(): int
+    {
+        return $this->paymentSchedule()
+            ->where('status', '!=', 'paid')
+            ->where('due_date', '<', now())
+            ->count();
+    }
+
+    /**
+     * Get total amount of overdue payments
+     */
+    public function getOverdueAmount(): float
+    {
+        $overdueSchedules = $this->paymentSchedule()
+            ->where('status', '!=', 'paid')
+            ->where('due_date', '<', now())
+            ->get();
+
+        return $overdueSchedules->sum(function ($schedule) {
+            return $schedule->expected_amount - $schedule->paid_amount;
+        });
+    }
+
+    /**
+     * Mark loan as defaulted
+     */
+    public function markAsDefaulted(?string $reason = null): void
+    {
+        $this->update([
+            'status' => 'defaulted',
+            'notes' => ($this->notes ?? '') . "\n\n[" . now()->toDateTimeString() . "] Marked as DEFAULTED" .
+                       ($reason ? ": {$reason}" : " due to missed payments"),
+        ]);
+    }
+
+    /**
+     * Calculate daily payment amount with minimum of KES 200.
+     * Returns array with daily_payment_amount, adjusted_duration_days, and due_date
+     */
+    public function calculateDailyPayment(): array
+    {
+        $totalAmount = $this->total_amount;
+        $durationDays = $this->duration_days ?? 30; // Default 30 days
+        $disbursementDate = $this->disbursement_date ?? now();
+
+        $minimumDailyPayment = 200; // KES 200 minimum
+
+        // Scenario 1: Total amount < KES 200 - Pay once
+        if ($totalAmount < $minimumDailyPayment) {
+            return [
+                'daily_payment_amount' => $totalAmount,
+                'adjusted_duration_days' => 1,
+                'due_date' => $disbursementDate->copy()->addDay(),
+            ];
+        }
+
+        // Calculate daily payment
+        $calculatedDaily = $totalAmount / $durationDays;
+
+        // Scenario 2: Calculated daily payment >= KES 200 - Use as is
+        if ($calculatedDaily >= $minimumDailyPayment) {
+            return [
+                'daily_payment_amount' => round($calculatedDaily, 2),
+                'adjusted_duration_days' => $durationDays,
+                'due_date' => $disbursementDate->copy()->addDays($durationDays),
+            ];
+        }
+
+        // Scenario 3: Calculated daily < KES 200 - Adjust duration
+        $adjustedDuration = (int) ceil($totalAmount / $minimumDailyPayment);
+
+        return [
+            'daily_payment_amount' => $minimumDailyPayment,
+            'adjusted_duration_days' => $adjustedDuration,
+            'due_date' => $disbursementDate->copy()->addDays($adjustedDuration),
+        ];
+    }
+
+    /**
+     * Generate payment schedule for this loan
+     */
+    public function generatePaymentSchedule(): void
+    {
+        // Clear existing schedule if any
+        $this->paymentSchedule()->delete();
+
+        if (!$this->disbursement_date || !$this->adjusted_duration_days) {
+            return;
+        }
+
+        $dailyAmount = $this->daily_payment_amount;
+        $totalDays = $this->adjusted_duration_days;
+        $disbursementDate = $this->disbursement_date;
+
+        // Calculate last day remainder
+        $totalExpected = $dailyAmount * ($totalDays - 1);
+        $lastDayAmount = $this->total_amount - $totalExpected;
+
+        for ($day = 1; $day <= $totalDays; $day++) {
+            $dueDate = $disbursementDate->copy()->addDays($day);
+            $expectedAmount = ($day == $totalDays) ? $lastDayAmount : $dailyAmount;
+
+            PaymentSchedule::create([
+                'loan_id' => $this->id,
+                'day_number' => $day,
+                'due_date' => $dueDate,
+                'expected_amount' => $expectedAmount,
+                'paid_amount' => 0,
+                'status' => 'pending',
+            ]);
+        }
     }
 }

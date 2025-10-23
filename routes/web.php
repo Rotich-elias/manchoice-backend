@@ -42,6 +42,11 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/part-requests/{id}', [PartRequestController::class, 'show']);
     Route::post('/part-requests/{id}/update-status', [PartRequestController::class, 'updateStatus']);
 
+    // Support Tickets routes
+    Route::get('/support-tickets', [DashboardController::class, 'supportTickets']);
+    Route::get('/support-tickets/{id}', [DashboardController::class, 'viewTicket']);
+    Route::post('/support-tickets/{id}/update', [DashboardController::class, 'updateTicket']);
+
     // Report export routes
     Route::get('/reports/customers', [ReportController::class, 'customers'])->name('reports.customers');
     Route::get('/reports/loans', [ReportController::class, 'loans'])->name('reports.loans');

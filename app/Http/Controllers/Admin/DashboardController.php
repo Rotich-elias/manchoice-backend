@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Loan;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,7 @@ class DashboardController extends Controller
             'loans' => Loan::count(),
             'pending_loans' => Loan::where('status', 'pending')->count(),
             'active_loans' => Loan::whereIn('status', ['approved', 'active'])->count(),
+            'defaulted_loans' => Loan::where('status', 'defaulted')->count(),
             'total_borrowed' => Loan::whereIn('status', ['approved', 'active', 'completed'])->sum('total_amount'),
             'total_paid' => Payment::where('status', 'completed')->sum('amount'),
             'products' => Product::count(),
@@ -28,8 +30,9 @@ class DashboardController extends Controller
 
         $recentLoans = Loan::with('customer')->latest()->take(5)->get();
         $pendingLoans = Loan::with('customer')->where('status', 'pending')->latest()->get();
+        $defaultedLoans = Loan::with('customer')->where('status', 'defaulted')->latest()->get();
 
-        return view('admin.dashboard', compact('stats', 'recentLoans', 'pendingLoans'));
+        return view('admin.dashboard', compact('stats', 'recentLoans', 'pendingLoans', 'defaultedLoans'));
     }
 
     public function customers()
@@ -150,18 +153,27 @@ class DashboardController extends Controller
             }
         }
 
+        // Calculate daily payment and adjusted duration
+        $paymentCalculation = $loan->calculateDailyPayment();
+
         $loan->update([
             'status' => 'approved',
             'approved_by' => auth()->id(),
             'approved_at' => now(),
             'disbursement_date' => now()->toDateString(),
+            'daily_payment_amount' => $paymentCalculation['daily_payment_amount'],
+            'adjusted_duration_days' => $paymentCalculation['adjusted_duration_days'],
+            'due_date' => $paymentCalculation['due_date'],
         ]);
+
+        // Generate payment schedule
+        $loan->generatePaymentSchedule();
 
         $customer = $loan->customer;
         $customer->total_borrowed += $loan->total_amount;
         $customer->save();
 
-        return back()->with('success', 'Loan approved successfully and stock quantities updated');
+        return back()->with('success', 'Loan approved successfully with daily payment of KES ' . number_format($paymentCalculation['daily_payment_amount'], 2) . ' for ' . $paymentCalculation['adjusted_duration_days'] . ' days');
     }
 
     public function rejectLoan(Request $request, $id)
@@ -411,6 +423,12 @@ class DashboardController extends Controller
                 return back()->with('error', 'Payment amount (KES ' . number_format($validated['amount'], 2) . ') exceeds loan balance (KES ' . number_format($loan->balance, 2) . ')');
             }
 
+            // Warning for payments below recommended daily amount (but still allow)
+            $warningMessage = '';
+            if ($loan->daily_payment_amount && $validated['amount'] < $loan->daily_payment_amount) {
+                $warningMessage = ' Note: Payment is below recommended daily amount of KES ' . number_format($loan->daily_payment_amount, 2) . '.';
+            }
+
             // Generate transaction ID
             $transactionId = 'TXN' . date('YmdHis') . strtoupper(substr(md5(uniqid()), 0, 4));
 
@@ -446,10 +464,90 @@ class DashboardController extends Controller
             $customer->total_paid += $payment->amount;
             $customer->save();
 
-            return back()->with('success', 'Payment of KES ' . number_format($payment->amount, 2) . ' recorded successfully!');
+            return back()->with('success', 'Payment of KES ' . number_format($payment->amount, 2) . ' recorded successfully!' . $warningMessage);
 
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to create payment: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Display all support tickets
+     */
+    public function supportTickets(Request $request)
+    {
+        $query = SupportTicket::with(['user', 'customer', 'assignedAdmin']);
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by type
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // Filter by priority
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('ticket_number', 'like', "%{$search}%")
+                  ->orWhere('subject', 'like', "%{$search}%")
+                  ->orWhere('message', 'like', "%{$search}%");
+            });
+        }
+
+        $tickets = $query->latest()->paginate(20);
+
+        $stats = [
+            'total' => SupportTicket::count(),
+            'open' => SupportTicket::where('status', 'open')->count(),
+            'in_progress' => SupportTicket::where('status', 'in_progress')->count(),
+            'resolved' => SupportTicket::whereIn('status', ['resolved', 'closed'])->count(),
+        ];
+
+        return view('admin.support-tickets', compact('tickets', 'stats'));
+    }
+
+    /**
+     * View single support ticket
+     */
+    public function viewTicket($id)
+    {
+        $ticket = SupportTicket::with(['user', 'customer', 'assignedAdmin'])->findOrFail($id);
+        return view('admin.support-ticket-detail', compact('ticket'));
+    }
+
+    /**
+     * Update support ticket status and response
+     */
+    public function updateTicket(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:open,in_progress,resolved,closed',
+            'priority' => 'nullable|in:low,medium,high,urgent',
+            'admin_response' => 'nullable|string',
+            'assigned_to' => 'nullable|exists:users,id',
+        ]);
+
+        $ticket = SupportTicket::findOrFail($id);
+
+        if (isset($validated['admin_response'])) {
+            $validated['admin_response'] = ($ticket->admin_response ?? '') . "\n\n[" . now()->toDateTimeString() . " - " . auth()->user()->name . "]\n" . $validated['admin_response'];
+        }
+
+        if (in_array($validated['status'], ['resolved', 'closed']) && !$ticket->resolved_at) {
+            $validated['resolved_at'] = now();
+        }
+
+        $ticket->update($validated);
+
+        return back()->with('success', 'Ticket updated successfully');
     }
 }

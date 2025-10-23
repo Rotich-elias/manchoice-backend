@@ -159,7 +159,8 @@
         <h2 class="text-xl font-semibold text-gray-800">Guarantor Details</h2>
     </div>
     <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <h3 class="text-md font-semibold text-gray-700 mb-4 border-b pb-2">Personal Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
                 <label class="text-sm font-medium text-gray-500">Name</label>
                 <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_name }}</p>
@@ -177,6 +178,36 @@
                 <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_email ?? 'N/A' }}</p>
             </div>
         </div>
+
+        @if($customer->guarantor_motorcycle_number_plate)
+        <h3 class="text-md font-semibold text-gray-700 mb-4 border-b pb-2 mt-6">Guarantor's Motorcycle Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="text-sm font-medium text-gray-500">Number Plate</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_number_plate }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Chassis Number</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_chassis_number ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Model</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_model ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Type</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_type ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Engine CC</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_engine_cc ?? 'N/A' }}</p>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-gray-500">Colour</label>
+                <p class="text-lg font-semibold text-gray-900">{{ $customer->guarantor_motorcycle_colour ?? 'N/A' }}</p>
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 @endif
@@ -362,9 +393,41 @@
                target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
         </div>
         @endif
+
+        <!-- Guarantor Bike Photo -->
+        @if($customer->guarantor_bike_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Guarantor's Motorcycle Photo
+            </h3>
+            <img src="{{ str_starts_with($customer->guarantor_bike_photo_path, 'http') ? $customer->guarantor_bike_photo_path : asset('storage/' . $customer->guarantor_bike_photo_path) }}"
+                 alt="Guarantor Motorcycle" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($customer->guarantor_bike_photo_path, 'http') ? $customer->guarantor_bike_photo_path : asset('storage/' . $customer->guarantor_bike_photo_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Guarantor Logbook Photo -->
+        @if($customer->guarantor_logbook_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Guarantor's Logbook
+            </h3>
+            <img src="{{ str_starts_with($customer->guarantor_logbook_photo_path, 'http') ? $customer->guarantor_logbook_photo_path : asset('storage/' . $customer->guarantor_logbook_photo_path) }}"
+                 alt="Guarantor Logbook" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($customer->guarantor_logbook_photo_path, 'http') ? $customer->guarantor_logbook_photo_path : asset('storage/' . $customer->guarantor_logbook_photo_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
     </div>
 
-    @if(!$customer->bike_photo_path && !$customer->logbook_photo_path && !$customer->passport_photo_path && !$customer->id_photo_front_path && !$customer->id_photo_back_path && !$customer->next_of_kin_id_front_path && !$customer->next_of_kin_id_back_path && !$customer->next_of_kin_passport_photo_path && !$customer->guarantor_id_front_path && !$customer->guarantor_id_back_path && !$customer->guarantor_passport_photo_path)
+    @if(!$customer->bike_photo_path && !$customer->logbook_photo_path && !$customer->passport_photo_path && !$customer->id_photo_front_path && !$customer->id_photo_back_path && !$customer->next_of_kin_id_front_path && !$customer->next_of_kin_id_back_path && !$customer->next_of_kin_passport_photo_path && !$customer->guarantor_id_front_path && !$customer->guarantor_id_back_path && !$customer->guarantor_passport_photo_path && !$customer->guarantor_bike_photo_path && !$customer->guarantor_logbook_photo_path)
     <p class="text-gray-500 text-center py-8">No documents uploaded for this customer</p>
     @endif
 </div>

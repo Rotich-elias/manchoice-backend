@@ -74,6 +74,13 @@ class CustomerController extends Controller
             'guarantor_relationship' => 'nullable|string|max:255',
             'guarantor_email' => 'nullable|email|max:255',
             'guarantor_passport_photo_path' => 'nullable|string',
+            // Guarantor Motorcycle Details
+            'guarantor_motorcycle_number_plate' => 'nullable|string|max:255',
+            'guarantor_motorcycle_chassis_number' => 'nullable|string|max:255',
+            'guarantor_motorcycle_model' => 'nullable|string|max:255',
+            'guarantor_motorcycle_type' => 'nullable|string|max:255',
+            'guarantor_motorcycle_engine_cc' => 'nullable|string|max:255',
+            'guarantor_motorcycle_colour' => 'nullable|string|max:255',
         ]);
 
         // Associate customer with authenticated user
@@ -151,6 +158,13 @@ class CustomerController extends Controller
             'guarantor_relationship' => 'nullable|string|max:255',
             'guarantor_email' => 'nullable|email|max:255',
             'guarantor_passport_photo_path' => 'nullable|string',
+            // Guarantor Motorcycle Details
+            'guarantor_motorcycle_number_plate' => 'nullable|string|max:255',
+            'guarantor_motorcycle_chassis_number' => 'nullable|string|max:255',
+            'guarantor_motorcycle_model' => 'nullable|string|max:255',
+            'guarantor_motorcycle_type' => 'nullable|string|max:255',
+            'guarantor_motorcycle_engine_cc' => 'nullable|string|max:255',
+            'guarantor_motorcycle_colour' => 'nullable|string|max:255',
         ]);
 
         $customer->update($validated);

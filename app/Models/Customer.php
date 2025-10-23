@@ -43,6 +43,15 @@ class Customer extends Model
         'guarantor_relationship',
         'guarantor_email',
         'guarantor_passport_photo_path',
+        'guarantor_bike_photo_path',
+        'guarantor_logbook_photo_path',
+        // Guarantor Motorcycle Details
+        'guarantor_motorcycle_number_plate',
+        'guarantor_motorcycle_chassis_number',
+        'guarantor_motorcycle_model',
+        'guarantor_motorcycle_type',
+        'guarantor_motorcycle_engine_cc',
+        'guarantor_motorcycle_colour',
         // Document Photos (stored on customer profile for reuse)
         'bike_photo_path',
         'logbook_photo_path',
@@ -73,6 +82,8 @@ class Customer extends Model
         'guarantor_id_front_url',
         'guarantor_id_back_url',
         'guarantor_passport_photo_url',
+        'guarantor_bike_photo_url',
+        'guarantor_logbook_photo_url',
     ];
 
     /**
@@ -161,6 +172,22 @@ class Customer extends Model
     public function getGuarantorPassportPhotoUrlAttribute(): ?string
     {
         return $this->guarantor_passport_photo_path ? asset('storage/' . $this->guarantor_passport_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for guarantor bike photo
+     */
+    public function getGuarantorBikePhotoUrlAttribute(): ?string
+    {
+        return $this->guarantor_bike_photo_path ? asset('storage/' . $this->guarantor_bike_photo_path) : null;
+    }
+
+    /**
+     * Get the full URL for guarantor logbook photo
+     */
+    public function getGuarantorLogbookPhotoUrlAttribute(): ?string
+    {
+        return $this->guarantor_logbook_photo_path ? asset('storage/' . $this->guarantor_logbook_photo_path) : null;
     }
 
     /**

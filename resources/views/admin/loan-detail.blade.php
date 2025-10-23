@@ -32,21 +32,36 @@
         </div>
 
         @if($loan->status === 'pending')
-        <div class="flex space-x-3">
-            <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
-                @csrf
-                <button type="submit" onclick="return confirm('Are you sure you want to approve this loan?')"
-                        class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-semibold">
-                    Approve Loan
-                </button>
-            </form>
-            <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="inline">
-                @csrf
-                <button type="submit" onclick="return confirm('Are you sure you want to reject this loan?')"
-                        class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded font-semibold">
-                    Reject Loan
-                </button>
-            </form>
+        <div>
+            @php
+                $approvedLoansCount = $loan->customer->loans()->whereIn('status', ['approved', 'active', 'completed'])->count();
+            @endphp
+            @if($approvedLoansCount == 0 && (!$loan->customer->credit_limit || $loan->customer->credit_limit <= 0))
+            <div class="mb-3 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg">
+                <p class="font-semibold">⚠ Action Required: Set Loan Limit</p>
+                <p class="text-sm">This is a new customer with no approved loans. Please set their loan limit before approving or rejecting this application.</p>
+                <a href="/admin/customers/{{ $loan->customer->id }}"
+                   class="inline-block mt-2 px-4 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-semibold">
+                    Go to Customer Profile
+                </a>
+            </div>
+            @endif
+            <div class="flex space-x-3">
+                <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Are you sure you want to approve this loan?')"
+                            class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-semibold">
+                        Approve Loan
+                    </button>
+                </form>
+                <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" onclick="return confirm('Are you sure you want to reject this loan?')"
+                            class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded font-semibold">
+                        Reject Loan
+                    </button>
+                </form>
+            </div>
         </div>
         @elseif($loan->approved_by && $loan->approver)
         <div class="text-sm text-gray-600">
@@ -618,6 +633,19 @@ function toggleQuickMpesaFields(select) {
 <!-- Action Buttons (Bottom) -->
 @if($loan->status === 'pending')
 <div class="bg-white rounded-lg shadow p-6">
+    @php
+        $approvedLoansCount = $loan->customer->loans()->whereIn('status', ['approved', 'active', 'completed'])->count();
+    @endphp
+    @if($approvedLoansCount == 0 && (!$loan->customer->credit_limit || $loan->customer->credit_limit <= 0))
+    <div class="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+        <p class="font-bold text-lg">⚠ Action Required: Set Loan Limit First</p>
+        <p class="mt-1">This is a new customer with no approved loans. You must set their loan limit before you can approve or reject this application.</p>
+        <a href="/admin/customers/{{ $loan->customer->id }}"
+           class="inline-block mt-3 px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold">
+            Set Loan Limit in Customer Profile
+        </a>
+    </div>
+    @endif
     <div class="flex justify-center space-x-4">
         <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
             @csrf

@@ -104,6 +104,12 @@ class DashboardController extends Controller
         // Get customer and check status
         $customer = $loan->customer;
 
+        // Check if this is the customer's first loan (no approved/active/completed loans) and if credit limit is not set
+        $approvedLoansCount = $customer->loans()->whereIn('status', ['approved', 'active', 'completed'])->count();
+        if ($approvedLoansCount == 0 && (!$customer->credit_limit || $customer->credit_limit <= 0)) {
+            return back()->with('error', 'Please set a loan limit for this customer before approving their first loan. Go to customer details to set the loan limit.');
+        }
+
         // Check customer status
         if ($customer->status === 'blacklisted') {
             return back()->with('error', 'Cannot approve loan. Customer account is blacklisted.');
@@ -164,6 +170,15 @@ class DashboardController extends Controller
 
         if ($loan->status !== 'pending') {
             return back()->with('error', 'Only pending loans can be rejected');
+        }
+
+        // Get customer and check if this is their first loan
+        $customer = $loan->customer;
+
+        // Check if this is the customer's first loan (no approved/active/completed loans) and if credit limit is not set
+        $approvedLoansCount = $customer->loans()->whereIn('status', ['approved', 'active', 'completed'])->count();
+        if ($approvedLoansCount == 0 && (!$customer->credit_limit || $customer->credit_limit <= 0)) {
+            return back()->with('error', 'Please set a loan limit for this customer before rejecting their first loan. Go to customer details to set the loan limit.');
         }
 
         $rejectionReason = $request->input('rejection_reason', 'No reason provided');

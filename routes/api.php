@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CustomerController;
 use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\DepositController;
 use App\Http\Controllers\API\LoanController;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\MpesaController;
@@ -62,6 +63,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('registration-fee/verify', [RegistrationFeeController::class, 'verifyPayment']);
     Route::post('registration-fee/cash', [RegistrationFeeController::class, 'recordCashPayment']); // Admin only
     Route::get('registration-fees', [RegistrationFeeController::class, 'index']); // Admin only
+
+    // Deposit routes
+    Route::get('loans/{loan}/deposit/status', [DepositController::class, 'getDepositStatus']);
+    Route::post('loans/{loan}/deposit/mpesa', [DepositController::class, 'initiateMpesaPayment']);
+    Route::post('deposits/verify', [DepositController::class, 'verifyPayment']);
+    Route::post('deposits/cash', [DepositController::class, 'recordCashPayment']); // Admin only
+    Route::get('loans/{loan}/deposits', [DepositController::class, 'getLoanDeposits']);
+    Route::get('deposits', [DepositController::class, 'index']); // Admin only
 
     // Protected product management routes (admin only)
     Route::post('products', [ProductController::class, 'store']);

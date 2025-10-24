@@ -19,6 +19,10 @@ class Loan extends Model
         'total_amount',
         'amount_paid',
         'balance',
+        'deposit_amount',
+        'deposit_paid',
+        'deposit_required',
+        'deposit_paid_at',
         'status',
         'disbursement_date',
         'due_date',
@@ -50,6 +54,10 @@ class Loan extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'balance' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'deposit_paid' => 'decimal:2',
+        'deposit_required' => 'boolean',
+        'deposit_paid_at' => 'datetime',
         'daily_payment_amount' => 'decimal:2',
         'disbursement_date' => 'date',
         'due_date' => 'date',
@@ -264,5 +272,44 @@ class Loan extends Model
                 'status' => 'pending',
             ]);
         }
+    }
+
+    /**
+     * Calculate required deposit amount (10% of total loan amount)
+     */
+    public function calculateDepositAmount(): float
+    {
+        return round($this->total_amount * 0.10, 2);
+    }
+
+    /**
+     * Check if deposit is fully paid
+     */
+    public function isDepositPaid(): bool
+    {
+        if (!$this->deposit_required) {
+            return true;
+        }
+        return $this->deposit_paid >= $this->deposit_amount;
+    }
+
+    /**
+     * Get remaining deposit amount
+     */
+    public function getRemainingDepositAmount(): float
+    {
+        if (!$this->deposit_required) {
+            return 0;
+        }
+        $remaining = $this->deposit_amount - $this->deposit_paid;
+        return $remaining > 0 ? $remaining : 0;
+    }
+
+    /**
+     * Get the deposits for this loan
+     */
+    public function deposits(): HasMany
+    {
+        return $this->hasMany(Deposit::class);
     }
 }

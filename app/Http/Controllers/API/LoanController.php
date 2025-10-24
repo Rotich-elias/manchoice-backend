@@ -199,12 +199,18 @@ class LoanController extends Controller
                 }
             }
 
+            // Calculate 10% deposit
+            $depositAmount = round($totalAmount * 0.10, 2);
+
             $loan = Loan::create([
                 ...$validated,
                 'loan_number' => $loanNumber,
                 'total_amount' => $totalAmount,
                 'balance' => $totalAmount,
                 'amount_paid' => 0,
+                'deposit_amount' => $depositAmount,
+                'deposit_paid' => 0,
+                'deposit_required' => true,
                 'status' => 'pending',
                 ...$photoPaths,
             ]);

@@ -27,6 +27,9 @@ class User extends Authenticatable
         'role',
         'profile_completed',
         'customer_id',
+        'registration_fee_paid',
+        'registration_fee_amount',
+        'registration_fee_paid_at',
     ];
 
     /**
@@ -52,6 +55,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'pin' => 'hashed',
             'profile_completed' => 'boolean',
+            'registration_fee_paid' => 'boolean',
+            'registration_fee_paid_at' => 'datetime',
         ];
     }
 
@@ -61,5 +66,13 @@ class User extends Authenticatable
     public function customer()
     {
         return $this->belongsTo(\App\Models\Customer::class);
+    }
+
+    /**
+     * Get the registration fee associated with this user
+     */
+    public function registrationFee()
+    {
+        return $this->hasOne(\App\Models\RegistrationFee::class);
     }
 }

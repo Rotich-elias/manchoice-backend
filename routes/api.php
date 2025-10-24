@@ -8,6 +8,7 @@ use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\MpesaController;
 use App\Http\Controllers\API\PartRequestController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\RegistrationFeeController;
 use App\Http\Controllers\API\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +55,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // M-PESA routes
     Route::post('mpesa/stk-push', [MpesaController::class, 'stkPush']);
     Route::post('mpesa/check-status', [MpesaController::class, 'checkStatus']);
+
+    // Registration Fee routes
+    Route::get('registration-fee/status', [RegistrationFeeController::class, 'getStatus']);
+    Route::post('registration-fee/mpesa', [RegistrationFeeController::class, 'initiateMpesaPayment']);
+    Route::post('registration-fee/verify', [RegistrationFeeController::class, 'verifyPayment']);
+    Route::post('registration-fee/cash', [RegistrationFeeController::class, 'recordCashPayment']); // Admin only
+    Route::get('registration-fees', [RegistrationFeeController::class, 'index']); // Admin only
 
     // Protected product management routes (admin only)
     Route::post('products', [ProductController::class, 'store']);

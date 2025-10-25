@@ -45,6 +45,8 @@ class Loan extends Model
         'guarantor_id_front_path',
         'guarantor_id_back_path',
         'guarantor_passport_photo_path',
+        'guarantor_bike_photo_path',
+        'guarantor_logbook_photo_path',
         'application_details',
     ];
 

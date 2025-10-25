@@ -65,6 +65,69 @@ class AuthController extends Controller
             ]);
         }
 
+        // Check registration fee status
+        if (!$user->registration_fee_paid) {
+            $registrationFee = $user->registrationFee;
+
+            // If no registration fee record exists, user needs to pay
+            if (!$registrationFee) {
+                return response()->json([
+                    'success' => false,
+                    'requires_registration_fee' => true,
+                    'registration_fee_status' => 'not_submitted',
+                    'message' => 'Please pay the registration fee to proceed',
+                    'data' => [
+                        'user' => $user,
+                        'payment_status' => [
+                            'status' => 'not_submitted',
+                            'message' => 'You need to pay the KES 300 registration fee to activate your account.',
+                            'fee_amount' => 300.00,
+                        ]
+                    ]
+                ], 402); // 402 Payment Required
+            }
+
+            // If registration fee is pending verification
+            if ($registrationFee->status === 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'requires_registration_fee' => true,
+                    'registration_fee_status' => 'pending_verification',
+                    'message' => 'Your registration fee payment is awaiting admin verification',
+                    'data' => [
+                        'user' => $user,
+                        'payment_status' => [
+                            'status' => 'pending_verification',
+                            'message' => 'Your payment has been submitted and is awaiting admin verification. This usually takes a few hours.',
+                            'fee_amount' => 300.00,
+                            'submitted_at' => $registrationFee->created_at,
+                            'mpesa_code' => $registrationFee->mpesa_receipt_number,
+                        ]
+                    ]
+                ], 402); // 402 Payment Required
+            }
+
+            // If registration fee was rejected
+            if ($registrationFee->status === 'failed') {
+                return response()->json([
+                    'success' => false,
+                    'requires_registration_fee' => true,
+                    'registration_fee_status' => 'rejected',
+                    'message' => 'Your registration fee payment was rejected. Please submit a new payment.',
+                    'data' => [
+                        'user' => $user,
+                        'payment_status' => [
+                            'status' => 'rejected',
+                            'message' => 'Your previous payment was rejected. Please make a new payment with a valid M-PESA transaction code.',
+                            'fee_amount' => 300.00,
+                            'rejection_reason' => $registrationFee->notes,
+                        ]
+                    ]
+                ], 402); // 402 Payment Required
+            }
+        }
+
+        // Registration fee is paid, allow login
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

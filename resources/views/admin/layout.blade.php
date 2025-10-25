@@ -18,6 +18,17 @@
                     <a href="/admin/customers" class="hover:text-blue-200">Customers</a>
                     <a href="/admin/loans" class="hover:text-blue-200">Loans</a>
                     <a href="/admin/payments" class="hover:text-blue-200">Payments</a>
+                    <a href="/admin/registration-fees" class="hover:text-blue-200 relative">
+                        Registration Fees
+                        @php
+                            $pendingFees = \App\Models\RegistrationFee::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingFees > 0)
+                            <span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $pendingFees }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
                     <a href="/admin/part-requests" class="hover:text-blue-200">Part Requests</a>
                     <a href="/admin/support-tickets" class="hover:text-blue-200 relative">

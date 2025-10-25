@@ -550,4 +550,69 @@ class DashboardController extends Controller
 
         return back()->with('success', 'Ticket updated successfully');
     }
+
+    public function registrationFees(Request $request)
+    {
+        $status = $request->get('status', 'all');
+        $currentStatus = $status;
+
+        $query = \App\Models\RegistrationFee::with(['user', 'recorder']);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $fees = $query->latest()->paginate(20);
+        $pendingCount = \App\Models\RegistrationFee::where('status', 'pending')->count();
+
+        return view('admin.registration-fees', compact('fees', 'currentStatus', 'pendingCount'));
+    }
+
+    public function verifyRegistrationFee(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:completed,failed',
+            'notes' => 'nullable|string',
+        ]);
+
+        $fee = \App\Models\RegistrationFee::with('user')->findOrFail($id);
+
+        // Check if already verified
+        if ($fee->status === 'completed') {
+            return back()->with('error', 'This payment has already been verified');
+        }
+
+        if ($validated['status'] === 'completed') {
+            // Verify the payment
+            $fee->update([
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => auth()->id(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Update user record
+            $fee->user->update([
+                'registration_fee_paid' => true,
+                'registration_fee_amount' => 300.00,
+                'registration_fee_paid_at' => now(),
+            ]);
+
+            // Update any loans that were awaiting registration fee
+            \App\Models\Loan::where('customer_id', $fee->user->customer_id)
+                ->where('status', 'awaiting_registration_fee')
+                ->update(['status' => 'pending']);
+
+            return back()->with('success', 'Registration fee verified successfully. User can now proceed with loan applications.');
+        } else {
+            // Mark as failed
+            $fee->update([
+                'status' => 'failed',
+                'recorded_by' => auth()->id(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            return back()->with('success', 'Registration fee marked as failed.');
+        }
+    }
 }

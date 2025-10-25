@@ -60,9 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Registration Fee routes
     Route::get('registration-fee/status', [RegistrationFeeController::class, 'getStatus']);
     Route::post('registration-fee/mpesa', [RegistrationFeeController::class, 'initiateMpesaPayment']);
+    Route::post('registration-fee/manual', [RegistrationFeeController::class, 'submitManualPayment']); // Manual submission with M-PESA code
     Route::post('registration-fee/verify', [RegistrationFeeController::class, 'verifyPayment']);
     Route::post('registration-fee/cash', [RegistrationFeeController::class, 'recordCashPayment']); // Admin only
     Route::get('registration-fees', [RegistrationFeeController::class, 'index']); // Admin only
+    Route::post('registration-fees/{id}/verify', [RegistrationFeeController::class, 'verifyManualPayment']); // Admin verify manual payment
 
     // Deposit routes
     Route::get('loans/{loan}/deposit/status', [DepositController::class, 'getDepositStatus']);

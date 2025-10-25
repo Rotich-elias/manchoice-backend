@@ -74,6 +74,59 @@ class RegistrationFeeController extends Controller
     }
 
     /**
+     * Submit manual payment with M-PESA transaction code
+     */
+    public function submitManualPayment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone_number' => 'required|string|regex:/^0[0-9]{9}$/',
+            'mpesa_code' => 'required|string|min:8',
+            'amount' => 'required|numeric|min:300',
+        ]);
+
+        $user = $request->user();
+
+        // Check if already paid
+        if ($user->registration_fee_paid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration fee already paid',
+            ], 400);
+        }
+
+        // Check if transaction code already exists
+        $existingFee = RegistrationFee::where('mpesa_receipt_number', strtoupper($request->mpesa_code))->first();
+        if ($existingFee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This M-PESA transaction code has already been used',
+            ], 400);
+        }
+
+        // Create registration fee record with pending status (awaiting admin verification)
+        $registrationFee = RegistrationFee::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'amount' => $request->amount,
+                'phone_number' => $request->phone_number,
+                'payment_method' => 'mpesa',
+                'status' => 'pending', // Admin will verify
+                'transaction_id' => 'REG-MANUAL-' . strtoupper(Str::random(10)),
+                'mpesa_receipt_number' => strtoupper($request->mpesa_code),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment submitted successfully. Your payment will be verified by admin within a few hours.',
+            'data' => [
+                'status' => 'pending',
+                'registration_fee' => $registrationFee->fresh(),
+            ]
+        ], 201);
+    }
+
+    /**
      * Record cash payment for registration fee (admin only)
      */
     public function recordCashPayment(Request $request): JsonResponse
@@ -171,6 +224,64 @@ class RegistrationFeeController extends Controller
                 'registration_fee' => $registrationFee->fresh(),
                 'next_step' => 'Wait for admin to review your application and set your loan limit',
             ]
+        ]);
+    }
+
+    /**
+     * Admin manually verifies a registration fee payment
+     */
+    public function verifyManualPayment(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|in:completed,failed',
+            'notes' => 'nullable|string',
+        ]);
+
+        $registrationFee = RegistrationFee::findOrFail($id);
+
+        // Check if already verified
+        if ($registrationFee->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment has already been verified',
+            ], 400);
+        }
+
+        if ($request->status === 'completed') {
+            // Verify the payment
+            $registrationFee->update([
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => $request->user()->id,
+                'notes' => $request->notes,
+            ]);
+
+            // Update user record
+            $registrationFee->user->update([
+                'registration_fee_paid' => true,
+                'registration_fee_amount' => 300.00,
+                'registration_fee_paid_at' => now(),
+            ]);
+
+            // Update any loans that were awaiting registration fee
+            $this->updateAwaitingLoans($registrationFee->user);
+
+            $message = 'Registration fee payment verified successfully. User can now proceed with loan applications.';
+        } else {
+            // Mark as failed
+            $registrationFee->update([
+                'status' => 'failed',
+                'recorded_by' => $request->user()->id,
+                'notes' => $request->notes,
+            ]);
+
+            $message = 'Registration fee payment marked as failed.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $registrationFee->fresh(['user', 'recorder']),
         ]);
     }
 

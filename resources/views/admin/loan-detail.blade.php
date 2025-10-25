@@ -23,15 +23,23 @@
             <span class="px-3 py-1 text-sm rounded-full
                 {{ $loan->status === 'approved' ? 'bg-green-100 text-green-800' : '' }}
                 {{ $loan->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                {{ $loan->status === 'awaiting_registration_fee' ? 'bg-orange-100 text-orange-800' : '' }}
                 {{ $loan->status === 'rejected' ? 'bg-red-100 text-red-800' : '' }}
                 {{ $loan->status === 'active' ? 'bg-blue-100 text-blue-800' : '' }}
                 {{ $loan->status === 'completed' ? 'bg-gray-100 text-gray-800' : '' }}
             ">
-                {{ ucfirst($loan->status) }}
+                {{ $loan->status === 'awaiting_registration_fee' ? 'Awaiting Registration Fee' : ucfirst(str_replace('_', ' ', $loan->status)) }}
             </span>
         </div>
 
-        @if($loan->status === 'pending')
+        @if($loan->status === 'awaiting_registration_fee')
+        <div class="text-sm text-gray-600">
+            <p class="bg-orange-50 border border-orange-200 rounded p-3">
+                <strong>⚠ Awaiting Registration Fee Payment</strong><br>
+                Customer needs to pay KES 300 registration fee before this application can be reviewed.
+            </p>
+        </div>
+        @elseif($loan->status === 'pending')
         <div>
             @php
                 $approvedLoansCount = $loan->customer->loans()->whereIn('status', ['approved', 'active', 'completed'])->count();
@@ -273,6 +281,106 @@
     </div>
     @endif
 </div>
+
+<!-- Deposit Information -->
+@if($loan->deposit_required)
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4 border-b pb-2">Deposit Information (10% of Loan)</h2>
+
+    <div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded">
+        <p class="text-sm font-semibold">ℹ️ Note: Deposit payments are automatically deducted from the loan balance</p>
+    </div>
+
+    <!-- Deposit Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div>
+            <span class="text-gray-600">Required Deposit</span>
+            <div class="text-2xl font-bold text-blue-600">KES {{ number_format($loan->deposit_amount, 2) }}</div>
+        </div>
+        <div>
+            <span class="text-gray-600">Deposit Paid</span>
+            <div class="text-2xl font-bold text-green-600">KES {{ number_format($loan->deposit_paid, 2) }}</div>
+        </div>
+        <div>
+            <span class="text-gray-600">Remaining Deposit</span>
+            <div class="text-2xl font-bold {{ $loan->getRemainingDepositAmount() > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                KES {{ number_format($loan->getRemainingDepositAmount(), 2) }}
+            </div>
+        </div>
+        <div>
+            <span class="text-gray-600">Deposit Status</span>
+            <div class="mt-2">
+                @if($loan->isDepositPaid())
+                    <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 font-semibold">
+                        ✓ Fully Paid
+                    </span>
+                @else
+                    <span class="px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-800 font-semibold">
+                        ⚠ Pending
+                    </span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit History -->
+    @if($loan->deposits && $loan->deposits->count() > 0)
+    <div class="pt-6 border-t">
+        <h3 class="font-semibold text-gray-700 mb-3">Deposit Payment History</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date Paid</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach($loan->deposits as $deposit)
+                    <tr>
+                        <td class="px-4 py-2 text-sm">
+                            {{ $deposit->paid_at ? $deposit->paid_at->format('M d, Y H:i') : 'Pending' }}
+                        </td>
+                        <td class="px-4 py-2 text-sm font-mono">{{ $deposit->transaction_id }}</td>
+                        <td class="px-4 py-2 text-sm font-bold text-green-600">KES {{ number_format($deposit->amount, 2) }}</td>
+                        <td class="px-4 py-2 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full
+                                {{ $deposit->type === 'loan_deposit' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800' }}">
+                                {{ ucfirst(str_replace('_', ' ', $deposit->type)) }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {{ strtoupper($deposit->payment_method) }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full
+                                {{ $deposit->status === 'completed' ? 'bg-green-100 text-green-800' : '' }}
+                                {{ $deposit->status === 'pending' ? 'bg-orange-100 text-orange-800' : '' }}
+                                {{ $deposit->status === 'failed' ? 'bg-red-100 text-red-800' : '' }}">
+                                {{ ucfirst($deposit->status) }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-sm">{{ $deposit->mpesa_receipt_number ?? '-' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @else
+    <div class="pt-6 border-t">
+        <p class="text-gray-500 text-center py-4">No deposit payments recorded yet.</p>
+    </div>
+    @endif
+</div>
+@endif
 
 <!-- Payment Summary & Quick Payment -->
 @if(in_array($loan->status, ['approved', 'active', 'completed']))

@@ -114,9 +114,12 @@ class RegistrationFeeController extends Controller
             'registration_fee_paid_at' => now(),
         ]);
 
+        // Update any loans that were awaiting registration fee
+        $this->updateAwaitingLoans($user);
+
         return response()->json([
             'success' => true,
-            'message' => 'Registration fee recorded successfully',
+            'message' => 'Registration fee recorded successfully. Loan application moved to pending review.',
             'data' => $registrationFee->fresh(),
         ], 201);
     }
@@ -154,15 +157,19 @@ class RegistrationFeeController extends Controller
                 'registration_fee_amount' => 300.00,
                 'registration_fee_paid_at' => now(),
             ]);
+
+            // Update any loans that were awaiting registration fee
+            $this->updateAwaitingLoans($registrationFee->user);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment verified successfully',
+            'message' => 'Registration fee payment verified successfully. Your loan application will now be reviewed by admin.',
             'data' => [
                 'status' => $registrationFee->status,
                 'fee_paid' => $registrationFee->user->registration_fee_paid,
                 'registration_fee' => $registrationFee->fresh(),
+                'next_step' => 'Wait for admin to review your application and set your loan limit',
             ]
         ]);
     }
@@ -187,5 +194,21 @@ class RegistrationFeeController extends Controller
             'success' => true,
             'data' => $fees,
         ]);
+    }
+
+    /**
+     * Update loans that were awaiting registration fee payment
+     */
+    private function updateAwaitingLoans($user)
+    {
+        // Get customer for this user
+        $customer = $user->customer;
+
+        if ($customer) {
+            // Update all loans with status 'awaiting_registration_fee' to 'pending'
+            \App\Models\Loan::where('customer_id', $customer->id)
+                ->where('status', 'awaiting_registration_fee')
+                ->update(['status' => 'pending']);
+        }
     }
 }

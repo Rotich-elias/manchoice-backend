@@ -50,7 +50,7 @@ class DepositController extends Controller
             'amount' => 'nullable|numeric|min:1',
         ]);
 
-        $loan = Loan::findOrFail($loanId);
+        $loan = Loan::with('customer')->findOrFail($loanId);
 
         // Check if user owns this loan
         if ($request->user()->customer_id !== $loan->customer_id) {
@@ -58,6 +58,24 @@ class DepositController extends Controller
                 'success' => false,
                 'message' => 'Unauthorized access to this loan',
             ], 403);
+        }
+
+        // CRITICAL: Prevent deposit payment if credit limit is not set
+        // This ensures customers can't pay deposits before admin reviews and sets their limit
+        if ($loan->customer->credit_limit <= 0) {
+            return response()->json([
+                'success' => false,
+                'show_popup' => true,
+                'popup_type' => 'info',
+                'popup_title' => 'Loan Under Review',
+                'popup_icon' => '⏳',
+                'message' => 'Your loan application is currently under review.',
+                'popup_message' => "Please wait for admin review!\n\nYour loan application is currently being reviewed by our admin team. Once approved and your loan limit is set, you'll be able to proceed with the deposit payment.\n\nYou will be notified once the review is complete.\n\nThank you for your patience!",
+                'credit_limit_not_set' => true,
+                'status' => 'awaiting_admin_review',
+                'action_required' => 'wait_for_admin_approval',
+                'estimated_wait' => 'Usually within 24-48 hours',
+            ], 202); // 202 Accepted - Cannot process deposit yet
         }
 
         // Check if deposit is already fully paid
@@ -85,6 +103,7 @@ class DepositController extends Controller
             'loan_id' => $loan->id,
             'customer_id' => $loan->customer_id,
             'amount' => $paymentAmount,
+            'type' => 'loan_deposit',
             'phone_number' => $request->phone_number,
             'payment_method' => 'mpesa',
             'status' => 'pending',
@@ -141,12 +160,18 @@ class DepositController extends Controller
                 'mpesa_receipt_number' => 'MPE' . strtoupper(Str::random(8)),
             ]);
 
-            // Update loan deposit_paid amount
+            // Update loan deposit_paid amount AND deduct from balance
             $loan = $deposit->loan;
             $loan->update([
                 'deposit_paid' => $loan->deposit_paid + $deposit->amount,
                 'deposit_paid_at' => $loan->isDepositPaid() ? now() : $loan->deposit_paid_at,
+                'amount_paid' => $loan->amount_paid + $deposit->amount,
+                'balance' => $loan->balance - $deposit->amount,
             ]);
+
+            // Update customer total_paid
+            $customer = $loan->customer;
+            $customer->increment('total_paid', $deposit->amount);
         }
 
         return response()->json([
@@ -195,6 +220,7 @@ class DepositController extends Controller
             'loan_id' => $loan->id,
             'customer_id' => $loan->customer_id,
             'amount' => $request->amount,
+            'type' => 'loan_deposit',
             'phone_number' => $request->phone_number,
             'payment_method' => 'cash',
             'status' => 'completed',
@@ -204,11 +230,17 @@ class DepositController extends Controller
             'transaction_id' => 'DEP-CASH-' . strtoupper(Str::random(10)),
         ]);
 
-        // Update loan deposit_paid amount
+        // Update loan deposit_paid amount AND deduct from balance
         $loan->update([
             'deposit_paid' => $loan->deposit_paid + $deposit->amount,
             'deposit_paid_at' => $loan->isDepositPaid() ? now() : $loan->deposit_paid_at,
+            'amount_paid' => $loan->amount_paid + $deposit->amount,
+            'balance' => $loan->balance - $deposit->amount,
         ]);
+
+        // Update customer total_paid
+        $customer = $loan->customer;
+        $customer->increment('total_paid', $deposit->amount);
 
         return response()->json([
             'success' => true,
@@ -251,6 +283,7 @@ class DepositController extends Controller
         $perPage = $request->get('per_page', 15);
         $status = $request->get('status');
         $loanId = $request->get('loan_id');
+        $type = $request->get('type');
 
         $query = Deposit::with(['loan', 'customer', 'recorder']);
 
@@ -260,6 +293,10 @@ class DepositController extends Controller
 
         if ($loanId) {
             $query->where('loan_id', $loanId);
+        }
+
+        if ($type) {
+            $query->where('type', $type);
         }
 
         $deposits = $query->latest()->paginate($perPage);

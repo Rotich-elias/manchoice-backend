@@ -82,7 +82,7 @@ class DashboardController extends Controller
 
     public function loanDetail($id)
     {
-        $loan = Loan::with(['customer', 'approver', 'payments'])->findOrFail($id);
+        $loan = Loan::with(['customer', 'approver', 'payments', 'deposits'])->findOrFail($id);
         return view('admin.loan-detail', compact('loan'));
     }
 

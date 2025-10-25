@@ -13,6 +13,7 @@ class Deposit extends Model
         'loan_id',
         'customer_id',
         'amount',
+        'type',
         'transaction_id',
         'mpesa_receipt_number',
         'phone_number',

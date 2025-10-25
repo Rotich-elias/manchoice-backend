@@ -138,6 +138,16 @@ class LoanController extends Controller
             // Get customer and check status
             $customer = Customer::find($validated['customer_id']);
 
+            // Check if user has paid registration fee
+            $user = $request->user();
+            if (!$user->registration_fee_paid) {
+                // Allow loan application submission but mark it as awaiting registration fee
+                // The loan will be saved with a special status
+                $awaitingRegistrationFee = true;
+            } else {
+                $awaitingRegistrationFee = false;
+            }
+
             // Check customer status
             if ($customer->status === 'blacklisted') {
                 return response()->json([
@@ -157,23 +167,64 @@ class LoanController extends Controller
             $interestRate = (float)($validated['interest_rate'] ?? 0);
             $totalAmount = (float)$validated['principal_amount'] * (1 + ($interestRate / 100));
 
-            // Check credit limit (only if credit_limit > 0)
-            if ($customer->credit_limit > 0) {
-                $outstandingBalance = $customer->total_borrowed - $customer->total_paid;
-                $availableCredit = $customer->credit_limit - $outstandingBalance;
+            // CRITICAL: Check if customer has a credit limit set (must be > 0)
+            // Allow FIRST application (for registration flow), but prevent subsequent applications
+            if ($customer->credit_limit <= 0) {
+                // Check if customer already has a loan application
+                $existingLoans = \App\Models\Loan::where('customer_id', $customer->id)->count();
 
-                if ($totalAmount > $availableCredit) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Loan amount exceeds your available credit limit',
-                        'data' => [
-                            'credit_limit' => number_format($customer->credit_limit, 2),
-                            'outstanding_balance' => number_format($outstandingBalance, 2),
-                            'available_credit' => number_format($availableCredit, 2),
-                            'requested_amount' => number_format($totalAmount, 2),
-                        ]
-                    ], 400);
+                if ($existingLoans > 0) {
+                    // Customer already has an application - prevent additional ones
+                    if ($user->registration_fee_paid) {
+                        return response()->json([
+                            'success' => false,
+                            'show_popup' => true,
+                            'popup_type' => 'info',
+                            'popup_title' => 'Application Under Review',
+                            'popup_icon' => '⏳',
+                            'message' => 'Your loan application is currently under review by our admin team.',
+                            'popup_message' => "Thank you for your patience!\n\nYour first loan application has been submitted and is currently being reviewed by our admin team.\n\nOnce the review is complete, we will set your loan limit and notify you. After that, you'll be able to apply for loans.\n\nPlease check back later or wait for our notification.",
+                            'credit_limit_not_set' => true,
+                            'registration_fee_paid' => true,
+                            'status' => 'awaiting_admin_review',
+                            'action_required' => 'wait_for_review',
+                            'estimated_wait' => 'Usually within 24-48 hours',
+                        ], 202); // 202 Accepted - Request acknowledged but not processed
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'show_popup' => true,
+                            'popup_type' => 'warning',
+                            'popup_title' => 'Registration Fee Required',
+                            'popup_icon' => '💰',
+                            'message' => 'Please complete your registration payment to continue.',
+                            'popup_message' => "Almost there!\n\nYou have submitted a loan application, but you need to pay the KES 300 registration fee first.\n\nOnce the registration fee is paid, our admin team will review your application and set your loan limit.\n\nPlease complete the payment to proceed.",
+                            'credit_limit_not_set' => true,
+                            'registration_fee_paid' => false,
+                            'registration_fee_amount' => 300.00,
+                            'action_required' => 'pay_registration_fee',
+                            'action_button_text' => 'Pay KES 300 Now',
+                        ], 402); // 402 Payment Required
+                    }
                 }
+                // First application is allowed - will be handled by the awaiting_registration_fee flow
+            }
+
+            // Check credit limit (if loan amount exceeds available credit)
+            $outstandingBalance = $customer->total_borrowed - $customer->total_paid;
+            $availableCredit = $customer->credit_limit - $outstandingBalance;
+
+            if ($totalAmount > $availableCredit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Loan amount exceeds your available credit limit',
+                    'data' => [
+                        'credit_limit' => number_format($customer->credit_limit, 2),
+                        'outstanding_balance' => number_format($outstandingBalance, 2),
+                        'available_credit' => number_format($availableCredit, 2),
+                        'requested_amount' => number_format($totalAmount, 2),
+                    ]
+                ], 400);
             }
 
             // Generate loan number
@@ -202,6 +253,9 @@ class LoanController extends Controller
             // Calculate 10% deposit
             $depositAmount = round($totalAmount * 0.10, 2);
 
+            // Determine loan status based on registration fee payment
+            $loanStatus = $awaitingRegistrationFee ? 'awaiting_registration_fee' : 'pending';
+
             $loan = Loan::create([
                 ...$validated,
                 'loan_number' => $loanNumber,
@@ -211,7 +265,7 @@ class LoanController extends Controller
                 'deposit_amount' => $depositAmount,
                 'deposit_paid' => 0,
                 'deposit_required' => true,
-                'status' => 'pending',
+                'status' => $loanStatus,
                 ...$photoPaths,
             ]);
 
@@ -242,9 +296,34 @@ class LoanController extends Controller
 
             DB::commit();
 
+            // Return different response based on registration fee status
+            if ($awaitingRegistrationFee) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Loan application submitted successfully. Please pay the KES 300 registration fee to proceed.',
+                    'registration_fee_required' => true,
+                    'registration_fee_amount' => 300.00,
+                    'next_step' => 'Pay registration fee',
+                    'data' => $loan->load(['customer', 'items.product'])
+                ], 201);
+            }
+
+            // Check if customer has credit limit set
+            $needsReview = $customer->credit_limit <= 0;
+
             return response()->json([
                 'success' => true,
-                'message' => 'Loan created successfully',
+                'message' => 'Loan application submitted successfully',
+                'show_info_popup' => $needsReview,
+                'popup_type' => 'info',
+                'popup_title' => 'Application Submitted Successfully',
+                'popup_icon' => '✅',
+                'popup_message' => $needsReview
+                    ? "Your loan application has been submitted successfully!\n\nOur admin team will review your application and set your loan limit within 24-48 hours.\n\nYou will be notified once your application is approved and you can proceed with the payment.\n\nThank you for choosing us!"
+                    : null,
+                'credit_limit' => $customer->credit_limit,
+                'awaiting_admin_review' => $needsReview,
+                'estimated_wait' => $needsReview ? 'Usually within 24-48 hours' : null,
                 'data' => $loan->load(['customer', 'items.product'])
             ], 201);
 

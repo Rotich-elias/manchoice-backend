@@ -41,6 +41,9 @@
     <a href="/admin/loans?status=rejected" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'rejected') ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
         Rejected
     </a>
+    <a href="/admin/loans?status=awaiting_registration_fee" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'awaiting_registration_fee') ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Awaiting Reg Fee
+    </a>
 </div>
 
 <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -83,17 +86,28 @@
                     <div class="text-sm text-gray-500">
                         Paid: KES {{ number_format($loan->amount_paid, 2) }}
                     </div>
+                    @if($loan->deposit_required)
+                    <div class="text-xs mt-1">
+                        <span class="text-gray-600">Deposit:</span>
+                        @if($loan->isDepositPaid())
+                            <span class="text-green-600 font-semibold">✓ {{ number_format($loan->deposit_paid, 2) }}</span>
+                        @else
+                            <span class="text-orange-600 font-semibold">{{ number_format($loan->deposit_paid, 2) }}/{{ number_format($loan->deposit_amount, 2) }}</span>
+                        @endif
+                    </div>
+                    @endif
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 text-xs rounded-full
                         {{ $loan->status === 'approved' ? 'bg-green-100 text-green-800' : '' }}
                         {{ $loan->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                        {{ $loan->status === 'awaiting_registration_fee' ? 'bg-orange-100 text-orange-800' : '' }}
                         {{ $loan->status === 'active' ? 'bg-blue-100 text-blue-800' : '' }}
                         {{ $loan->status === 'completed' ? 'bg-gray-100 text-gray-800' : '' }}
                         {{ $loan->status === 'rejected' ? 'bg-red-100 text-red-800' : '' }}
                         {{ $loan->status === 'defaulted' ? 'bg-red-100 text-red-800' : '' }}
                     ">
-                        {{ ucfirst($loan->status) }}
+                        {{ $loan->status === 'awaiting_registration_fee' ? 'Awaiting Fee' : ucfirst(str_replace('_', ' ', $loan->status)) }}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">

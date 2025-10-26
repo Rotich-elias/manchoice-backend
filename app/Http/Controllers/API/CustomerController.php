@@ -86,6 +86,11 @@ class CustomerController extends Controller
         // Associate customer with authenticated user
         $validated['user_id'] = $request->user()->id;
 
+        // Set default credit limit to 1000 for new customers if not specified
+        if (!isset($validated['credit_limit'])) {
+            $validated['credit_limit'] = 1000.00;
+        }
+
         $customer = Customer::create($validated);
 
         return response()->json([

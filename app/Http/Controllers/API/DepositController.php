@@ -186,6 +186,77 @@ class DepositController extends Controller
     }
 
     /**
+     * Submit manual deposit payment with M-PESA code (for verification)
+     */
+    public function submitManualPayment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'loan_id' => 'required|exists:loans,id',
+            'phone_number' => 'required|string|regex:/^0[0-9]{9}$/',
+            'mpesa_code' => 'required|string|min:8',
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $loan = Loan::with('customer')->findOrFail($request->loan_id);
+
+        // Check if user owns this loan
+        if ($request->user()->customer_id !== $loan->customer_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to this loan',
+            ], 403);
+        }
+
+        // Check if deposit is already fully paid
+        if ($loan->isDepositPaid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deposit already fully paid',
+            ], 400);
+        }
+
+        // Validate payment amount doesn't exceed remaining
+        $remainingDeposit = $loan->getRemainingDepositAmount();
+        if ($request->amount > $remainingDeposit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment amount exceeds remaining deposit',
+            ], 400);
+        }
+
+        // Check if this M-PESA code was already submitted
+        $existingDeposit = Deposit::where('mpesa_receipt_number', $request->mpesa_code)->first();
+        if ($existingDeposit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This M-PESA code has already been submitted',
+            ], 400);
+        }
+
+        // Create deposit record with pending status
+        $deposit = Deposit::create([
+            'loan_id' => $loan->id,
+            'customer_id' => $loan->customer_id,
+            'amount' => $request->amount,
+            'type' => 'loan_deposit',
+            'phone_number' => $request->phone_number,
+            'mpesa_receipt_number' => strtoupper($request->mpesa_code),
+            'payment_method' => 'mpesa',
+            'status' => 'pending',
+            'transaction_id' => 'DEP-MANUAL-' . strtoupper(Str::random(10)),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deposit payment submitted for verification',
+            'data' => [
+                'deposit' => $deposit->fresh(),
+                'status' => 'pending_verification',
+            ]
+        ], 201);
+    }
+
+    /**
      * Record cash deposit payment (admin only)
      */
     public function recordCashPayment(Request $request): JsonResponse

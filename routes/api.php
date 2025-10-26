@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Deposit routes
     Route::get('loans/{loan}/deposit/status', [DepositController::class, 'getDepositStatus']);
     Route::post('loans/{loan}/deposit/mpesa', [DepositController::class, 'initiateMpesaPayment']);
+    Route::post('deposits/manual', [DepositController::class, 'submitManualPayment']); // User submits M-PESA code
     Route::post('deposits/verify', [DepositController::class, 'verifyPayment']);
     Route::post('deposits/cash', [DepositController::class, 'recordCashPayment']); // Admin only
     Route::get('loans/{loan}/deposits', [DepositController::class, 'getLoanDeposits']);

@@ -70,6 +70,11 @@ class Customer extends Model
         'total_paid' => 'decimal:2',
     ];
 
+    protected $attributes = [
+        'credit_limit' => 1000.00,
+        'status' => 'active',
+    ];
+
     protected $appends = [
         'bike_photo_url',
         'logbook_photo_url',

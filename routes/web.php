@@ -51,6 +51,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/registration-fees', [DashboardController::class, 'registrationFees']);
     Route::post('/registration-fees/{id}/verify', [DashboardController::class, 'verifyRegistrationFee']);
 
+    // Deposit routes
+    Route::get('/deposits', [DashboardController::class, 'deposits']);
+    Route::post('/deposits/{id}/verify', [DashboardController::class, 'verifyDeposit']);
+
     // Report export routes
     Route::get('/reports/customers', [ReportController::class, 'customers'])->name('reports.customers');
     Route::get('/reports/loans', [ReportController::class, 'loans'])->name('reports.loans');

@@ -126,38 +126,32 @@ class DepositController extends Controller
     }
 
     /**
-     * Verify M-PESA deposit payment
+     * Admin manually verifies a deposit payment
      */
-    public function verifyPayment(Request $request): JsonResponse
+    public function verifyManualPayment(Request $request, $id): JsonResponse
     {
         $request->validate([
-            'transaction_id' => 'required|string',
+            'status' => 'required|in:completed,failed',
+            'notes' => 'nullable|string',
         ]);
 
-        $deposit = Deposit::where('transaction_id', $request->transaction_id)->first();
+        $deposit = Deposit::findOrFail($id);
 
-        if (!$deposit) {
+        // Check if already verified
+        if ($deposit->status === 'completed') {
             return response()->json([
                 'success' => false,
-                'message' => 'Transaction not found',
-            ], 404);
+                'message' => 'This payment has already been verified',
+            ], 400);
         }
 
-        // Check if user owns this deposit
-        if ($request->user()->customer_id !== $deposit->customer_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized access',
-            ], 403);
-        }
-
-        // TODO: Check actual M-PESA transaction status
-        // For now, simulate successful payment
-        if ($deposit->status === 'pending') {
+        if ($request->status === 'completed') {
+            // Verify the payment
             $deposit->update([
                 'status' => 'completed',
                 'paid_at' => now(),
-                'mpesa_receipt_number' => 'MPE' . strtoupper(Str::random(8)),
+                'recorded_by' => $request->user()->id,
+                'notes' => $request->notes,
             ]);
 
             // Update loan deposit_paid amount AND deduct from balance
@@ -169,19 +163,31 @@ class DepositController extends Controller
                 'balance' => $loan->balance - $deposit->amount,
             ]);
 
+            // If deposit is now fully paid, update loan status
+            if ($loan->isDepositPaid() && $loan->status === 'awaiting_deposit') {
+                $loan->update(['status' => 'pending']);
+            }
+
             // Update customer total_paid
             $customer = $loan->customer;
             $customer->increment('total_paid', $deposit->amount);
+
+            $message = 'Deposit payment verified successfully. Loan deposit has been updated.';
+        } else {
+            // Mark as failed
+            $deposit->update([
+                'status' => 'failed',
+                'recorded_by' => $request->user()->id,
+                'notes' => $request->notes,
+            ]);
+
+            $message = 'Deposit payment marked as failed.';
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment verified successfully',
-            'data' => [
-                'deposit' => $deposit->fresh(),
-                'loan' => $deposit->loan->fresh(),
-                'is_deposit_fully_paid' => $deposit->loan->isDepositPaid(),
-            ]
+            'message' => $message,
+            'data' => $deposit->fresh(['loan', 'customer', 'recorder']),
         ]);
     }
 

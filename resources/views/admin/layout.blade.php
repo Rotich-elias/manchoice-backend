@@ -29,6 +29,17 @@
                             </span>
                         @endif
                     </a>
+                    <a href="/admin/deposits" class="hover:text-blue-200 relative">
+                        Verify Deposits
+                        @php
+                            $pendingDeposits = \App\Models\Deposit::where('status', 'pending')->where('type', 'loan_deposit')->count();
+                        @endphp
+                        @if($pendingDeposits > 0)
+                            <span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $pendingDeposits }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/products" class="hover:text-blue-200">Products</a>
                     <a href="/admin/part-requests" class="hover:text-blue-200">Part Requests</a>
                     <a href="/admin/support-tickets" class="hover:text-blue-200 relative">

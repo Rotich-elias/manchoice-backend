@@ -254,11 +254,18 @@ class LoanController extends Controller
             $depositAmount = round($totalAmount * 0.10, 2);
 
             // Determine loan status based on registration fee payment
-            $loanStatus = $awaitingRegistrationFee ? 'awaiting_registration_fee' : 'pending';
+            // After loan is created, it needs deposit payment, so status should be 'awaiting_deposit'
+            if ($awaitingRegistrationFee) {
+                $loanStatus = 'awaiting_registration_fee';
+            } else {
+                $loanStatus = 'awaiting_deposit'; // New loans need deposit payment first
+            }
 
             $loan = Loan::create([
-                ...$validated,
+                'customer_id' => $validated['customer_id'],
                 'loan_number' => $loanNumber,
+                'principal_amount' => $validated['principal_amount'],
+                'interest_rate' => $validated['interest_rate'] ?? 0,
                 'total_amount' => $totalAmount,
                 'balance' => $totalAmount,
                 'amount_paid' => 0,
@@ -266,6 +273,10 @@ class LoanController extends Controller
                 'deposit_paid' => 0,
                 'deposit_required' => true,
                 'status' => $loanStatus,
+                'duration_days' => $validated['duration_days'] ?? null,
+                'due_date' => $validated['due_date'] ?? null,
+                'purpose' => $validated['purpose'] ?? null,
+                'notes' => $validated['notes'] ?? null,
                 ...$photoPaths,
             ]);
 
@@ -329,10 +340,15 @@ class LoanController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Loan creation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create loan',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'details' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }

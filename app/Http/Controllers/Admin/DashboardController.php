@@ -615,4 +615,80 @@ class DashboardController extends Controller
             return back()->with('success', 'Registration fee marked as failed.');
         }
     }
+
+    public function deposits(Request $request)
+    {
+        $status = $request->get('status', 'all');
+        $currentStatus = $status;
+
+        $query = \App\Models\Deposit::with(['loan', 'customer', 'recorder'])
+            ->where('type', 'loan_deposit')
+            ->whereNotNull('loan_id'); // Only show deposits with valid loan IDs
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $deposits = $query->latest()->paginate(20);
+        $pendingCount = \App\Models\Deposit::where('status', 'pending')
+            ->where('type', 'loan_deposit')
+            ->whereNotNull('loan_id')
+            ->count();
+
+        return view('admin.deposits', compact('deposits', 'currentStatus', 'pendingCount'));
+    }
+
+    public function verifyDeposit(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:completed,failed',
+            'notes' => 'nullable|string',
+        ]);
+
+        $deposit = \App\Models\Deposit::with(['loan', 'customer'])->findOrFail($id);
+
+        // Check if already verified
+        if ($deposit->status === 'completed') {
+            return back()->with('error', 'This payment has already been verified');
+        }
+
+        if ($validated['status'] === 'completed') {
+            // Verify the payment
+            $deposit->update([
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => auth()->id(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Update loan deposit_paid amount AND deduct from balance
+            $loan = $deposit->loan;
+            $loan->update([
+                'deposit_paid' => $loan->deposit_paid + $deposit->amount,
+                'deposit_paid_at' => $loan->isDepositPaid() ? now() : $loan->deposit_paid_at,
+                'amount_paid' => $loan->amount_paid + $deposit->amount,
+                'balance' => $loan->balance - $deposit->amount,
+            ]);
+
+            // If deposit is now fully paid, update loan status from awaiting_deposit to pending
+            if ($loan->isDepositPaid() && $loan->status === 'awaiting_deposit') {
+                $loan->update(['status' => 'pending']);
+            }
+
+            // Update customer total_paid
+            $customer = $loan->customer;
+            $customer->increment('total_paid', $deposit->amount);
+
+            return back()->with('success', 'Deposit payment verified successfully. Loan deposit balance has been updated.');
+        } else {
+            // Mark as failed
+            $deposit->update([
+                'status' => 'failed',
+                'recorded_by' => auth()->id(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            return back()->with('success', 'Deposit payment marked as failed.');
+        }
+    }
 }

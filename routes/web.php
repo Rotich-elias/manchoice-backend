@@ -62,3 +62,13 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
     Route::get('/reports/products', [ReportController::class, 'products'])->name('reports.products');
 });
+
+// Super Admin only routes (User Management)
+Route::prefix('admin')->middleware(['admin', 'super_admin'])->group(function () {
+    Route::get('/users', [DashboardController::class, 'users']);
+    Route::post('/users/store', [DashboardController::class, 'storeUser']);
+    Route::post('/users/{id}/update', [DashboardController::class, 'updateUser']);
+    Route::post('/users/{id}/delete', [DashboardController::class, 'deleteUser']);
+    Route::post('/users/{id}/update-status', [DashboardController::class, 'updateUserStatus']);
+    Route::post('/users/{id}/reset-password', [DashboardController::class, 'resetUserPassword']);
+});

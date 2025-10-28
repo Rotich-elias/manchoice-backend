@@ -70,8 +70,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Check registration fee status
-        if (!$user->registration_fee_paid) {
+        // Check registration fee status (only for customers, not staff)
+        if ($user->role === User::ROLE_CUSTOMER && !$user->registration_fee_paid) {
             $registrationFee = $user->registrationFee;
 
             // If no registration fee record exists, user needs to pay

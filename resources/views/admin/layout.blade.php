@@ -53,6 +53,9 @@
                             </span>
                         @endif
                     </a>
+                    @if(auth()->user()->role === 'super_admin')
+                        <a href="/admin/users" class="hover:text-blue-200">Staff</a>
+                    @endif
                     <form method="POST" action="/admin/logout" class="inline">
                         @csrf
                         <button type="submit" class="hover:text-blue-200">Logout</button>

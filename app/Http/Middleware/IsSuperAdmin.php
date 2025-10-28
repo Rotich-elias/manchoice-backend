@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class IsAdmin
+class IsSuperAdmin
 {
     /**
      * Handle an incoming request.
@@ -21,16 +21,9 @@ class IsAdmin
             return redirect('/admin/login');
         }
 
-        // Check if user has staff role (not customer)
-        $allowedRoles = [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_MANAGER,
-            User::ROLE_CLERK,
-            User::ROLE_COLLECTOR,
-        ];
-        if (!in_array(auth()->user()->role, $allowedRoles)) {
-            abort(403, 'Unauthorized access. Staff only.');
+        // Check if user is super admin
+        if (auth()->user()->role !== User::ROLE_SUPER_ADMIN) {
+            abort(403, 'Unauthorized. Super admin access only.');
         }
 
         return $next($request);

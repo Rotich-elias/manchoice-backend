@@ -11,6 +11,7 @@ use App\Http\Controllers\API\PartRequestController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\RegistrationFeeController;
 use App\Http\Controllers\API\SupportTicketController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -95,6 +96,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('support-tickets', [SupportTicketController::class, 'store']);
     Route::get('support-tickets/{id}', [SupportTicketController::class, 'show']);
 
+});
+
+// Super Admin only routes - User Management API
+Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('admin')->group(function () {
+    // User management
+    Route::get('users', [UserController::class, 'index']);
+    Route::post('users', [UserController::class, 'store']);
+    Route::get('users/statistics', [UserController::class, 'statistics']);
+    Route::get('users/{id}', [UserController::class, 'show']);
+    Route::put('users/{id}', [UserController::class, 'update']);
+    Route::delete('users/{id}', [UserController::class, 'destroy']);
+    Route::post('users/{id}/status', [UserController::class, 'updateStatus']);
+    Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword']);
 });
 
 // M-PESA Callback routes (public - no authentication required)

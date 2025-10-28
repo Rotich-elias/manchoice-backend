@@ -37,9 +37,17 @@ class AuthController extends Controller
                 ->withInput($request->only('email'));
         }
 
-        if ($user->role !== 'admin') {
+        // Check if user has staff role (not customer)
+        $allowedRoles = [
+            User::ROLE_SUPER_ADMIN,
+            User::ROLE_ADMIN,
+            User::ROLE_MANAGER,
+            User::ROLE_CLERK,
+            User::ROLE_COLLECTOR,
+        ];
+        if (!in_array($user->role, $allowedRoles)) {
             return back()
-                ->withErrors(['email' => 'Access denied. Admin access only.'])
+                ->withErrors(['email' => 'Access denied. Staff access only.'])
                 ->withInput($request->only('email'));
         }
 

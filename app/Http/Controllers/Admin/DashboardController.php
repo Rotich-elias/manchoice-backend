@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
@@ -690,5 +691,184 @@ class DashboardController extends Controller
 
             return back()->with('success', 'Deposit payment marked as failed.');
         }
+    }
+
+    /**
+     * Display staff users management page
+     */
+    public function users(Request $request)
+    {
+        $query = User::with(['creator'])
+            ->where('role', '!=', User::ROLE_CUSTOMER)
+            ->latest();
+
+        // Filter by role
+        if ($request->has('role') && $request->role) {
+            $query->where('role', $request->role);
+        }
+
+        // Filter by status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        // Search by name, email, or phone
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->paginate(15);
+
+        // Get statistics
+        $stats = [
+            'total_staff' => User::where('role', '!=', User::ROLE_CUSTOMER)->count(),
+            'by_role' => [
+                'super_admin' => User::where('role', User::ROLE_SUPER_ADMIN)->count(),
+                'admin' => User::where('role', User::ROLE_ADMIN)->count(),
+                'manager' => User::where('role', User::ROLE_MANAGER)->count(),
+                'clerk' => User::where('role', User::ROLE_CLERK)->count(),
+                'collector' => User::where('role', User::ROLE_COLLECTOR)->count(),
+            ],
+            'by_status' => [
+                'active' => User::where('role', '!=', User::ROLE_CUSTOMER)
+                    ->where('status', User::STATUS_ACTIVE)->count(),
+                'inactive' => User::where('role', '!=', User::ROLE_CUSTOMER)
+                    ->where('status', User::STATUS_INACTIVE)->count(),
+                'suspended' => User::where('role', '!=', User::ROLE_CUSTOMER)
+                    ->where('status', User::STATUS_SUSPENDED)->count(),
+            ],
+        ];
+
+        return view('admin.users', compact('users', 'stats'));
+    }
+
+    /**
+     * Store a new staff user
+     */
+    public function storeUser(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users,phone',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:admin,manager,clerk,collector',
+            'status' => 'required|in:active,inactive',
+            'approval_limit' => 'nullable|numeric|min:0',
+        ]);
+
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => Hash::make($validated['password']),
+            'pin' => Hash::make('1234'), // Default PIN
+            'role' => $validated['role'],
+            'status' => $validated['status'],
+            'approval_limit' => $validated['approval_limit'] ?? null,
+            'created_by' => auth()->id(),
+        ]);
+
+        return redirect('/admin/users')->with('success', 'User created successfully');
+    }
+
+    /**
+     * Update an existing staff user
+     */
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::where('role', '!=', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users,phone,' . $id,
+            'role' => 'required|in:admin,manager,clerk,collector',
+            'status' => 'required|in:active,inactive,suspended',
+            'approval_limit' => 'nullable|numeric|min:0',
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'role' => $validated['role'],
+            'status' => $validated['status'],
+            'approval_limit' => $validated['approval_limit'] ?? null,
+        ]);
+
+        return redirect('/admin/users')->with('success', 'User updated successfully');
+    }
+
+    /**
+     * Delete a staff user
+     */
+    public function deleteUser($id)
+    {
+        $user = User::where('role', '!=', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        // Prevent deleting self
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot delete your own account');
+        }
+
+        // Check if user has created other users
+        if ($user->createdUsers()->exists()) {
+            return back()->with('error', 'Cannot delete user who has created other users');
+        }
+
+        $user->delete();
+
+        return redirect('/admin/users')->with('success', 'User deleted successfully');
+    }
+
+    /**
+     * Update user status (activate/suspend)
+     */
+    public function updateUserStatus(Request $request, $id)
+    {
+        $user = User::where('role', '!=', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|in:active,inactive,suspended',
+        ]);
+
+        // Prevent changing own status
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot change your own status');
+        }
+
+        $user->update(['status' => $validated['status']]);
+
+        $statusText = [
+            'active' => 'activated',
+            'inactive' => 'deactivated',
+            'suspended' => 'suspended',
+        ];
+
+        return back()->with('success', "User {$statusText[$validated['status']]} successfully");
+    }
+
+    /**
+     * Reset user password
+     */
+    public function resetUserPassword(Request $request, $id)
+    {
+        $user = User::where('role', '!=', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        $validated = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with('success', 'Password reset successfully');
     }
 }

@@ -26,6 +26,10 @@ class DepositController extends Controller
             ], 403);
         }
 
+        // Get rejection count
+        $rejectionCount = Deposit::byLoan($loanId)->rejected()->count();
+        $hasReachedLimit = $rejectionCount >= 3;
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -36,6 +40,9 @@ class DepositController extends Controller
                 'is_deposit_paid' => $loan->isDepositPaid(),
                 'deposit_paid_at' => $loan->deposit_paid_at,
                 'deposits' => $loan->deposits,
+                'rejection_count' => $rejectionCount,
+                'has_reached_rejection_limit' => $hasReachedLimit,
+                'can_retry' => !$hasReachedLimit,
             ]
         ]);
     }
@@ -131,7 +138,8 @@ class DepositController extends Controller
     public function verifyManualPayment(Request $request, $id): JsonResponse
     {
         $request->validate([
-            'status' => 'required|in:completed,failed',
+            'status' => 'required|in:completed,failed,rejected',
+            'rejection_reason' => 'required_if:status,failed,rejected|string|min:10',
             'notes' => 'nullable|string',
         ]);
 
@@ -174,20 +182,31 @@ class DepositController extends Controller
 
             $message = 'Deposit payment verified successfully. Loan deposit has been updated.';
         } else {
-            // Mark as failed
+            // Reject the payment (failed or rejected status)
+            $totalRejections = Deposit::byLoan($deposit->loan_id)->rejected()->count();
+
             $deposit->update([
-                'status' => 'failed',
+                'status' => $request->status, // 'failed' or 'rejected'
+                'rejection_reason' => $request->rejection_reason,
+                'rejected_at' => now(),
+                'rejected_by' => $request->user()->id,
+                'rejection_count' => $totalRejections + 1,
                 'recorded_by' => $request->user()->id,
                 'notes' => $request->notes,
             ]);
 
-            $message = 'Deposit payment marked as failed.';
+            // Keep loan in awaiting_deposit status
+            if ($deposit->loan->status !== 'completed' && !$deposit->loan->isDepositPaid()) {
+                $deposit->loan->update(['status' => 'awaiting_deposit']);
+            }
+
+            $message = 'Deposit payment rejected.';
         }
 
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data' => $deposit->fresh(['loan', 'customer', 'recorder']),
+            'data' => $deposit->fresh(['loan', 'customer', 'recorder', 'rejector']),
         ]);
     }
 
@@ -381,6 +400,167 @@ class DepositController extends Controller
         return response()->json([
             'success' => true,
             'data' => $deposits,
+        ]);
+    }
+
+    /**
+     * Get rejection history for a loan
+     */
+    public function getRejectionHistory(Request $request, $loanId): JsonResponse
+    {
+        $loan = Loan::findOrFail($loanId);
+
+        // Check if user owns this loan
+        if ($request->user()->customer_id !== $loan->customer_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to this loan',
+            ], 403);
+        }
+
+        $rejectedDeposits = Deposit::byLoan($loanId)
+            ->rejected()
+            ->with('rejector')
+            ->orderByDesc('rejected_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rejectedDeposits,
+        ]);
+    }
+
+    /**
+     * Admin rejects a deposit payment
+     */
+    public function rejectDeposit(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'rejection_reason' => 'required|string|min:10',
+        ]);
+
+        $deposit = Deposit::findOrFail($id);
+        $loan = $deposit->loan;
+
+        // Check if already verified
+        if ($deposit->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot reject a completed payment',
+            ], 400);
+        }
+
+        // Check if already rejected
+        if ($deposit->status === 'rejected') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment has already been rejected',
+            ], 400);
+        }
+
+        // Calculate total rejection count for this loan
+        $totalRejections = Deposit::byLoan($loan->id)->rejected()->count();
+
+        // Update deposit status
+        $deposit->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+            'rejected_at' => now(),
+            'rejected_by' => $request->user()->id,
+            'rejection_count' => $totalRejections + 1,
+        ]);
+
+        // Keep loan in awaiting_deposit status if applicable
+        if ($loan->status !== 'completed' && !$loan->isDepositPaid()) {
+            $loan->update(['status' => 'awaiting_deposit']);
+        }
+
+        // TODO: Send notification to customer
+        // $this->sendRejectionNotification($deposit, $loan);
+
+        // If reached limit, notify admins
+        $hasReachedLimit = ($totalRejections + 1) >= 3;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deposit rejected successfully',
+            'data' => [
+                'deposit' => $deposit->fresh(['rejector', 'loan', 'customer']),
+                'rejection_count' => $totalRejections + 1,
+                'has_reached_limit' => $hasReachedLimit,
+            ],
+        ]);
+    }
+
+    /**
+     * Update admin verification to handle rejection count
+     */
+    public function verifyManualPaymentUpdated(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|in:completed,rejected',
+            'rejection_reason' => 'required_if:status,rejected|string|min:10',
+            'notes' => 'nullable|string',
+        ]);
+
+        $deposit = Deposit::findOrFail($id);
+
+        // Check if already verified
+        if ($deposit->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment has already been verified',
+            ], 400);
+        }
+
+        if ($request->status === 'completed') {
+            // Verify the payment
+            $deposit->update([
+                'status' => 'completed',
+                'paid_at' => now(),
+                'recorded_by' => $request->user()->id,
+                'notes' => $request->notes,
+            ]);
+
+            // Update loan deposit_paid amount AND deduct from balance
+            $loan = $deposit->loan;
+            $loan->update([
+                'deposit_paid' => $loan->deposit_paid + $deposit->amount,
+                'deposit_paid_at' => $loan->isDepositPaid() ? now() : $loan->deposit_paid_at,
+                'amount_paid' => $loan->amount_paid + $deposit->amount,
+                'balance' => $loan->balance - $deposit->amount,
+            ]);
+
+            // If deposit is now fully paid, update loan status
+            if ($loan->isDepositPaid() && $loan->status === 'awaiting_deposit') {
+                $loan->update(['status' => 'pending']);
+            }
+
+            // Update customer total_paid
+            $customer = $loan->customer;
+            $customer->increment('total_paid', $deposit->amount);
+
+            $message = 'Deposit payment verified successfully. Loan deposit has been updated.';
+        } else {
+            // Reject the payment
+            $totalRejections = Deposit::byLoan($deposit->loan_id)->rejected()->count();
+
+            $deposit->update([
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason,
+                'rejected_at' => now(),
+                'rejected_by' => $request->user()->id,
+                'rejection_count' => $totalRejections + 1,
+                'notes' => $request->notes,
+            ]);
+
+            $message = 'Deposit payment rejected.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $deposit->fresh(['loan', 'customer', 'recorder', 'rejector']),
         ]);
     }
 }

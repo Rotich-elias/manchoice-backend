@@ -22,11 +22,16 @@ class Deposit extends Model
         'paid_at',
         'notes',
         'recorded_by',
+        'rejection_reason',
+        'rejected_at',
+        'rejected_by',
+        'rejection_count',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -51,5 +56,57 @@ class Deposit extends Model
     public function recorder()
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Get the user who rejected this deposit
+     */
+    public function rejector()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    /**
+     * Check if rejection limit has been reached
+     *
+     * @return bool
+     */
+    public function hasReachedRejectionLimit()
+    {
+        return $this->rejection_count >= 3;
+    }
+
+    /**
+     * Check if this deposit can be retried
+     *
+     * @return bool
+     */
+    public function canRetry()
+    {
+        return ($this->status === 'rejected' || $this->status === 'failed')
+            && !$this->hasReachedRejectionLimit();
+    }
+
+    /**
+     * Scope to get only rejected deposits
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeRejected($query)
+    {
+        return $query->whereIn('status', ['rejected', 'failed']);
+    }
+
+    /**
+     * Scope to get deposits by loan
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $loanId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByLoan($query, $loanId)
+    {
+        return $query->where('loan_id', $loanId);
     }
 }

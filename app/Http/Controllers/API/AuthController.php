@@ -24,6 +24,7 @@ class AuthController extends Controller
             'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
             'pin_confirmation' => 'required|same:pin',
             'password' => 'nullable|string|min:8',
+            'accepted_terms' => 'required|boolean|accepted',
         ]);
 
         $user = User::create([
@@ -32,6 +33,10 @@ class AuthController extends Controller
             'pin' => Hash::make($request->pin),
             'email' => $request->email,
             'password' => $request->password ? Hash::make($request->password) : Hash::make($request->pin),
+            'accepted_terms' => true,
+            'accepted_terms_at' => now(),
+            'accepted_terms_version' => '1.0',
+            'accepted_terms_ip' => $request->ip(),
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

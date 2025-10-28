@@ -62,12 +62,19 @@ class Customer extends Model
         'next_of_kin_id_back_path',
         'guarantor_id_front_path',
         'guarantor_id_back_path',
+        // Terms & Conditions
+        'accepted_terms',
+        'accepted_terms_at',
+        'accepted_terms_version',
+        'accepted_terms_ip',
     ];
 
     protected $casts = [
         'credit_limit' => 'decimal:2',
         'total_borrowed' => 'decimal:2',
         'total_paid' => 'decimal:2',
+        'accepted_terms' => 'boolean',
+        'accepted_terms_at' => 'datetime',
     ];
 
     protected $attributes = [

@@ -72,8 +72,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('deposits/manual', [DepositController::class, 'submitManualPayment']); // User submits M-PESA code
     Route::post('deposits/cash', [DepositController::class, 'recordCashPayment']); // Admin only
     Route::get('loans/{loan}/deposits', [DepositController::class, 'getLoanDeposits']);
+    Route::get('loans/{loan}/deposits/rejected', [DepositController::class, 'getRejectionHistory']); // Get rejection history
     Route::get('deposits', [DepositController::class, 'index']); // Admin only
     Route::post('deposits/{id}/verify', [DepositController::class, 'verifyManualPayment']); // Admin verify manual payment
+    Route::post('deposits/{id}/reject', [DepositController::class, 'rejectDeposit']); // Admin reject deposit
 
     // Protected product management routes (admin only)
     Route::post('products', [ProductController::class, 'store']);

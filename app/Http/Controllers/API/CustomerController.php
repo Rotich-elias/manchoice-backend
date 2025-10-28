@@ -81,6 +81,8 @@ class CustomerController extends Controller
             'guarantor_motorcycle_type' => 'nullable|string|max:255',
             'guarantor_motorcycle_engine_cc' => 'nullable|string|max:255',
             'guarantor_motorcycle_colour' => 'nullable|string|max:255',
+            // Terms & Conditions
+            'accepted_terms' => 'required|boolean|accepted',
         ]);
 
         // Associate customer with authenticated user
@@ -90,6 +92,12 @@ class CustomerController extends Controller
         if (!isset($validated['credit_limit'])) {
             $validated['credit_limit'] = 1000.00;
         }
+
+        // Store T&C acceptance details
+        $validated['accepted_terms'] = true;
+        $validated['accepted_terms_at'] = now();
+        $validated['accepted_terms_version'] = '1.0';
+        $validated['accepted_terms_ip'] = $request->ip();
 
         $customer = Customer::create($validated);
 

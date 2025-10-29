@@ -30,6 +30,9 @@ class UpdateLoanStatuses extends Command
         $this->info('Updating payment schedules...');
         $this->updatePaymentSchedules();
 
+        $this->info('Applying daily penalties for missed payments...');
+        $this->applyDailyPenalties();
+
         $this->info('Checking for defaulted loans...');
         $this->checkDefaultedLoans();
 
@@ -69,6 +72,31 @@ class UpdateLoanStatuses extends Command
         $this->info("  - Overdue: {$overdueCount}");
         $this->info("  - Partial: {$partialCount}");
         $this->info("  - Paid: {$paidCount}");
+    }
+
+    /**
+     * Apply 1% penalty to all overdue payment schedules
+     */
+    private function applyDailyPenalties(): void
+    {
+        $loans = Loan::whereIn('status', ['approved', 'active'])
+            ->with('paymentSchedule')
+            ->get();
+
+        $totalPenaltyApplied = 0;
+        $loansWithPenalties = 0;
+
+        foreach ($loans as $loan) {
+            $penaltyAmount = $loan->applyDailyPenalties();
+
+            if ($penaltyAmount > 0) {
+                $loansWithPenalties++;
+                $totalPenaltyApplied += $penaltyAmount;
+                $this->line("Loan {$loan->loan_number}: Applied penalty of KES " . number_format($penaltyAmount, 2));
+            }
+        }
+
+        $this->info("Penalties applied to {$loansWithPenalties} loans. Total penalty: KES " . number_format($totalPenaltyApplied, 2));
     }
 
     /**

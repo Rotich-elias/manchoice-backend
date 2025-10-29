@@ -4,6 +4,32 @@
 
 ---
 
+# ⚠️ ⚠️ ⚠️ CRITICAL PRODUCTION WARNING ⚠️ ⚠️ ⚠️
+
+## 🔴 DO NOT USE THESE CREDENTIALS IN PRODUCTION!
+
+**THIS FILE CONTAINS DEFAULT DEVELOPMENT CREDENTIALS ONLY!**
+
+### BEFORE DEPLOYING TO PRODUCTION:
+1. ✅ **CHANGE THE ADMIN PASSWORD IMMEDIATELY**
+2. ✅ **DELETE THIS FILE FROM PRODUCTION SERVERS**
+3. ✅ **DO NOT COMMIT THIS FILE TO GIT** (already in .gitignore)
+4. ✅ **Store real credentials in a secure password manager**
+5. ✅ **Use strong, unique passwords (min 16 characters)**
+
+### IF THIS IS PRODUCTION:
+- **STOP!** Change all passwords NOW
+- Run: `php artisan tinker` and execute:
+  ```
+  $admin = \App\Models\User::find(1);
+  $admin->password = bcrypt('YOUR_STRONG_PASSWORD_HERE');
+  $admin->save();
+  ```
+- Delete this file immediately
+- Rotate all API keys and secrets
+
+---
+
 ## 🔐 Admin Login Credentials
 
 ### Web Admin Panel

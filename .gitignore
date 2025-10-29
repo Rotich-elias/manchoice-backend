@@ -22,3 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Sensitive files
+ADMIN_CREDENTIALS.md
+*_CREDENTIALS.md
+*.sh
+*.sql
+*.dump
+
+# Laravel logs
+/storage/logs/*.log

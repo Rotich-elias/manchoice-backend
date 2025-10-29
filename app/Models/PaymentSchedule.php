@@ -14,12 +14,18 @@ class PaymentSchedule extends Model
         'expected_amount',
         'paid_amount',
         'status',
+        'penalty_amount',
+        'penalty_applied',
+        'penalty_applied_date',
     ];
 
     protected $casts = [
         'due_date' => 'date',
         'expected_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'penalty_amount' => 'decimal:2',
+        'penalty_applied' => 'boolean',
+        'penalty_applied_date' => 'datetime',
     ];
 
     /**

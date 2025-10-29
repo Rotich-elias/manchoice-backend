@@ -19,6 +19,7 @@ class Loan extends Model
         'total_amount',
         'amount_paid',
         'balance',
+        'total_penalty_amount',
         'deposit_amount',
         'deposit_paid',
         'deposit_required',
@@ -56,6 +57,7 @@ class Loan extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'balance' => 'decimal:2',
+        'total_penalty_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'deposit_paid' => 'decimal:2',
         'deposit_required' => 'boolean',
@@ -64,6 +66,16 @@ class Loan extends Model
         'disbursement_date' => 'date',
         'due_date' => 'date',
         'approved_at' => 'datetime',
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     */
+    protected $appends = [
+        'total_penalties',
+        'pending_penalties',
+        'total_with_penalties',
+        'penalty_details',
     ];
 
     /**
@@ -313,5 +325,128 @@ class Loan extends Model
     public function deposits(): HasMany
     {
         return $this->hasMany(Deposit::class);
+    }
+
+    /**
+     * Apply 1% penalty to all overdue payment schedules that haven't had penalties applied yet.
+     * Returns the total penalty amount applied.
+     */
+    public function applyDailyPenalties(): float
+    {
+        if (!in_array($this->status, ['approved', 'active'])) {
+            return 0;
+        }
+
+        // Get overdue payment schedules that haven't had penalties applied
+        $overdueSchedules = $this->paymentSchedule()
+            ->where('status', '!=', 'paid')
+            ->where('due_date', '<', now())
+            ->where('penalty_applied', false)
+            ->get();
+
+        $totalPenaltyApplied = 0;
+
+        foreach ($overdueSchedules as $schedule) {
+            $penaltyAmount = $this->calculatePenaltyForSchedule($schedule);
+
+            // Update the payment schedule with penalty information
+            $schedule->update([
+                'penalty_amount' => $penaltyAmount,
+                'penalty_applied' => true,
+                'penalty_applied_date' => now(),
+            ]);
+
+            $totalPenaltyApplied += $penaltyAmount;
+        }
+
+        // Update the loan's total penalty amount
+        if ($totalPenaltyApplied > 0) {
+            $this->increment('total_penalty_amount', $totalPenaltyApplied);
+
+            // Update the balance to include the penalty
+            $this->increment('balance', $totalPenaltyApplied);
+
+            // Also update total_amount to reflect penalties
+            $this->increment('total_amount', $totalPenaltyApplied);
+        }
+
+        return $totalPenaltyApplied;
+    }
+
+    /**
+     * Calculate 1% penalty for a specific payment schedule.
+     * Penalty is 1% of the expected amount for that day.
+     */
+    public function calculatePenaltyForSchedule(PaymentSchedule $schedule): float
+    {
+        // 1% penalty on the unpaid amount
+        $unpaidAmount = $schedule->expected_amount - $schedule->paid_amount;
+        $penalty = $unpaidAmount * 0.01;
+
+        return round($penalty, 2);
+    }
+
+    /**
+     * Get total penalties from payment schedules (attribute accessor).
+     */
+    public function getTotalPenaltiesAttribute(): float
+    {
+        return (float) $this->paymentSchedule()
+            ->where('penalty_applied', true)
+            ->sum('penalty_amount');
+    }
+
+    /**
+     * Get detailed penalty breakdown (attribute accessor).
+     * Returns array of schedules with penalties.
+     */
+    public function getPenaltyDetailsAttribute(): array
+    {
+        $schedulesWithPenalties = $this->paymentSchedule()
+            ->where('penalty_applied', true)
+            ->where('penalty_amount', '>', 0)
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'day_number' => $schedule->day_number,
+                    'due_date' => $schedule->due_date->format('Y-m-d'),
+                    'expected_amount' => $schedule->expected_amount,
+                    'paid_amount' => $schedule->paid_amount,
+                    'penalty_amount' => $schedule->penalty_amount,
+                    'penalty_applied_date' => $schedule->penalty_applied_date?->format('Y-m-d H:i:s'),
+                    'status' => $schedule->status,
+                ];
+            })
+            ->toArray();
+
+        return $schedulesWithPenalties;
+    }
+
+    /**
+     * Get total amount including penalties.
+     */
+    public function getTotalWithPenaltiesAttribute(): float
+    {
+        return $this->total_amount;
+    }
+
+    /**
+     * Get pending penalties (overdue but not yet applied).
+     * This is for preview purposes.
+     */
+    public function getPendingPenaltiesAttribute(): float
+    {
+        $overdueSchedules = $this->paymentSchedule()
+            ->where('status', '!=', 'paid')
+            ->where('due_date', '<', now())
+            ->where('penalty_applied', false)
+            ->get();
+
+        $totalPending = 0;
+        foreach ($overdueSchedules as $schedule) {
+            $totalPending += $this->calculatePenaltyForSchedule($schedule);
+        }
+
+        return round($totalPending, 2);
     }
 }

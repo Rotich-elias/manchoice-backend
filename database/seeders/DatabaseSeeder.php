@@ -13,6 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seeding disabled - add seeds when needed
+        $this->call([
+            SuperAdminSeeder::class,
+            AdminUserSeeder::class,
+            UsersTableSeeder::class,
+        ]);
     }
 }

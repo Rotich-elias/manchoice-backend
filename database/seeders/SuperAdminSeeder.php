@@ -26,9 +26,9 @@ class SuperAdminSeeder extends Seeder
         // Create super admin user
         $superAdmin = User::create([
             'name' => 'Super Administrator',
-            'email' => 'admin@manchoice.com',
-            'phone' => '0700000000',
-            'password' => Hash::make('Admin@123'),
+            'email' => 'admin@manschoice.co.ke',
+            'phone' => '0721237811',
+            'password' => Hash::make('*#36964019hH'),
             'pin' => Hash::make('1234'),
             'role' => User::ROLE_SUPER_ADMIN,
             'status' => User::STATUS_ACTIVE,
@@ -37,7 +37,7 @@ class SuperAdminSeeder extends Seeder
 
         $this->command->info('Super admin created successfully!');
         $this->command->info('Email: ' . $superAdmin->email);
-        $this->command->info('Password: Admin@123');
+        $this->command->info('Password: *#36964019hH');
         $this->command->info('PIN: 1234');
         $this->command->warn('Please change these credentials after first login!');
     }

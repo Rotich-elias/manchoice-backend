@@ -75,28 +75,30 @@ class UpdateLoanStatuses extends Command
     }
 
     /**
-     * Apply 1% penalty to all overdue payment schedules
+     * Apply 1% penalty to all overdue loans
+     * Uses simple daily penalty: 1% of balance per day overdue
      */
     private function applyDailyPenalties(): void
     {
         $loans = Loan::whereIn('status', ['approved', 'active'])
-            ->with('paymentSchedule')
             ->get();
 
         $totalPenaltyApplied = 0;
         $loansWithPenalties = 0;
 
         foreach ($loans as $loan) {
-            $penaltyAmount = $loan->applyDailyPenalties();
+            // Apply simple daily penalty (1% of balance per day overdue)
+            $penaltyAmount = $loan->applySimpleDailyPenalty();
 
             if ($penaltyAmount > 0) {
                 $loansWithPenalties++;
                 $totalPenaltyApplied += $penaltyAmount;
-                $this->line("Loan {$loan->loan_number}: Applied penalty of KES " . number_format($penaltyAmount, 2));
+                $daysOverdue = $loan->daysOverdue();
+                $this->line("Loan {$loan->loan_number}: Applied penalty of KES " . number_format($penaltyAmount, 2) . " ({$daysOverdue} days overdue)");
             }
         }
 
-        $this->info("Penalties applied to {$loansWithPenalties} loans. Total penalty: KES " . number_format($totalPenaltyApplied, 2));
+        $this->info("Simple daily penalties applied to {$loansWithPenalties} loans. Total penalty: KES " . number_format($totalPenaltyApplied, 2));
     }
 
     /**

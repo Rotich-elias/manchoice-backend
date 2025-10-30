@@ -76,6 +76,8 @@ class Loan extends Model
         'pending_penalties',
         'total_with_penalties',
         'penalty_details',
+        'daily_penalty_rate',
+        'calculated_daily_penalty',
     ];
 
     /**
@@ -147,7 +149,7 @@ class Loan extends Model
             return 0;
         }
 
-        return now()->diffInDays($this->due_date);
+        return (int) $this->due_date->diffInDays(now());
     }
 
     /**
@@ -436,6 +438,12 @@ class Loan extends Model
      */
     public function getPendingPenaltiesAttribute(): float
     {
+        // Use simple daily penalty calculation if overdue
+        if ($this->isOverdue()) {
+            return $this->calculateSimpleDailyPenalty();
+        }
+
+        // Fallback to schedule-based penalties
         $overdueSchedules = $this->paymentSchedule()
             ->where('status', '!=', 'paid')
             ->where('due_date', '<', now())
@@ -448,5 +456,75 @@ class Loan extends Model
         }
 
         return round($totalPending, 2);
+    }
+
+    /**
+     * Calculate simple 1% daily penalty on remaining balance.
+     * This is a simplified penalty calculation: 1% of balance per day overdue.
+     */
+    public function calculateSimpleDailyPenalty(): float
+    {
+        if (!$this->isOverdue() || $this->balance <= 0) {
+            return 0;
+        }
+
+        $daysOverdue = $this->daysOverdue();
+        $dailyPenalty = $this->balance * 0.01; // 1% of balance
+        $totalPenalty = $dailyPenalty * $daysOverdue;
+
+        return round($totalPenalty, 2);
+    }
+
+    /**
+     * Get the daily penalty rate (1%).
+     */
+    public function getDailyPenaltyRateAttribute(): float
+    {
+        return 1.0; // 1% per day
+    }
+
+    /**
+     * Get calculated daily penalty amount (1% of balance).
+     */
+    public function getCalculatedDailyPenaltyAttribute(): float
+    {
+        if (!$this->isOverdue() || $this->balance <= 0) {
+            return 0;
+        }
+
+        return round($this->balance * 0.01, 2);
+    }
+
+    /**
+     * Apply simple daily penalty to loan balance.
+     * This applies 1% penalty per day overdue on the total balance.
+     * Returns the total penalty amount applied.
+     */
+    public function applySimpleDailyPenalty(): float
+    {
+        if (!$this->isOverdue() || !in_array($this->status, ['approved', 'active'])) {
+            return 0;
+        }
+
+        $penaltyAmount = $this->calculateSimpleDailyPenalty();
+
+        if ($penaltyAmount > 0) {
+            // Add penalty to total penalty amount
+            $this->increment('total_penalty_amount', $penaltyAmount);
+
+            // Add penalty to balance
+            $this->increment('balance', $penaltyAmount);
+
+            // Add penalty to total amount
+            $this->increment('total_amount', $penaltyAmount);
+
+            // Add note about penalty application
+            $note = "\n[" . now()->toDateTimeString() . "] Applied 1% daily penalty: KES " . number_format($penaltyAmount, 2) . " for " . $this->daysOverdue() . " days overdue";
+            $this->update([
+                'notes' => ($this->notes ?? '') . $note
+            ]);
+        }
+
+        return $penaltyAmount;
     }
 }

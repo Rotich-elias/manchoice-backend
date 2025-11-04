@@ -54,18 +54,18 @@
                 </a>
             </div>
             @endif
-            <div class="flex space-x-3">
-                <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="w-full sm:w-auto">
                     @csrf
                     <button type="submit" onclick="return confirm('Are you sure you want to approve this loan?')"
-                            class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-semibold">
+                            class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded font-semibold">
                         Approve Loan
                     </button>
                 </form>
-                <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="inline">
+                <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="w-full sm:w-auto">
                     @csrf
                     <button type="submit" onclick="return confirm('Are you sure you want to reject this loan?')"
-                            class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded font-semibold">
+                            class="w-full bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded font-semibold">
                         Reject Loan
                     </button>
                 </form>
@@ -783,18 +783,18 @@ function toggleQuickMpesaFields(select) {
         </a>
     </div>
     @endif
-    <div class="flex justify-center space-x-4">
-        <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
+    <div class="flex flex-col sm:flex-row justify-center gap-4">
+        <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="w-full sm:w-auto">
             @csrf
             <button type="submit" onclick="return confirm('Are you sure you want to approve this loan?')"
-                    class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold text-lg">
+                    class="w-full bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold text-lg">
                 ✓ Approve Loan
             </button>
         </form>
-        <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="inline">
+        <form action="/admin/loans/{{ $loan->id }}/reject" method="POST" class="w-full sm:w-auto">
             @csrf
             <button type="submit" onclick="return confirm('Are you sure you want to reject this loan?')"
-                    class="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-semibold text-lg">
+                    class="w-full bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-semibold text-lg">
                 ✗ Reject Loan
             </button>
         </form>

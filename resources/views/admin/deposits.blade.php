@@ -140,13 +140,13 @@
                 </td>
                 <td class="px-6 py-4">
                     @if($deposit->status === 'pending')
-                        <div class="flex space-x-2">
+                        <div class="flex flex-col sm:flex-row gap-2">
                             <button onclick="showVerifyModal({{ $deposit->id }}, '{{ $deposit->customer ? $deposit->customer->name : 'N/A' }}', '{{ $deposit->loan ? $deposit->loan->loan_number : 'N/A' }}', '{{ $deposit->mpesa_receipt_number }}', {{ $deposit->amount }})"
-                                    class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded">
+                                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded whitespace-nowrap">
                                 ✓ Verify
                             </button>
                             <button onclick="showRejectModal({{ $deposit->id }}, '{{ $deposit->customer ? $deposit->customer->name : 'N/A' }}', '{{ $deposit->loan ? $deposit->loan->loan_number : 'N/A' }}')"
-                                    class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded">
+                                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded whitespace-nowrap">
                                 ✗ Reject
                             </button>
                         </div>

@@ -127,25 +127,25 @@
                         <span class="text-gray-400">N/A</span>
                     @endif
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-6 py-4">
                     @if($loan->status === 'pending')
-                        <div class="flex space-x-2">
-                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm text-center whitespace-nowrap">
                                 View
                             </a>
-                            <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="inline">
+                            <form action="/admin/loans/{{ $loan->id }}/approve" method="POST" class="w-full sm:w-auto">
                                 @csrf
-                                <button type="submit" onclick="return confirm('Approve this loan?')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                                <button type="submit" onclick="return confirm('Approve this loan?')" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm whitespace-nowrap">
                                     Approve
                                 </button>
                             </form>
-                            <button onclick="showRejectModal({{ $loan->id }})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                            <button onclick="showRejectModal({{ $loan->id }})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm whitespace-nowrap">
                                 Reject
                             </button>
                         </div>
                     @else
-                        <div class="flex space-x-2">
-                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <a href="/admin/loans/{{ $loan->id }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm text-center whitespace-nowrap">
                                 View Details
                             </a>
                         </div>

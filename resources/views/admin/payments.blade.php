@@ -124,19 +124,19 @@
                         {{ ucfirst($payment->status) }}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-6 py-4">
                     @if($payment->status === 'pending')
-                    <div class="flex space-x-2">
-                        <form action="/admin/payments/{{ $payment->id }}/approve" method="POST" class="inline">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <form action="/admin/payments/{{ $payment->id }}/approve" method="POST" class="w-full sm:w-auto">
                             @csrf
                             <button type="submit"
                                     onclick="return confirm('Approve this payment of KES {{ number_format($payment->amount, 2) }}?')"
-                                    class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded">
+                                    class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded whitespace-nowrap">
                                 ✓ Approve
                             </button>
                         </form>
                         <button onclick="showRejectModal({{ $payment->id }})"
-                                class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded">
+                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded whitespace-nowrap">
                             ✗ Reject
                         </button>
                     </div>

@@ -13,19 +13,126 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Lookup customer by phone or ID number (public endpoint for registration)
+     */
+    public function lookupCustomer(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => 'nullable|string|regex:/^0[0-9]{9}$/',
+            'id_number' => 'nullable|string',
+        ]);
+
+        // Require at least one search parameter
+        if (!$request->phone && !$request->id_number) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please provide either phone number or ID number'
+            ], 400);
+        }
+
+        $query = \App\Models\Customer::query();
+
+        // Search by phone or ID number
+        if ($request->phone) {
+            $query->where('phone', $request->phone);
+        }
+        if ($request->id_number) {
+            $query->orWhere('id_number', $request->id_number);
+        }
+
+        $customer = $query->first();
+
+        if ($customer) {
+            // Check if customer is already linked to a user
+            if ($customer->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This customer account is already registered. Please login instead of signing up.',
+                    'data' => null,
+                    'already_registered' => true
+                ], 409); // 409 Conflict
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer found',
+                'data' => $customer
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No matching customer record found',
+            'data' => null
+        ], 404);
+    }
+
+    /**
      * Register a new user
      */
     public function register(Request $request): JsonResponse
     {
-        $request->validate([
+        // First, check if linking to existing customer
+        $linkingCustomer = null;
+        if ($request->customer_id) {
+            $linkingCustomer = \App\Models\Customer::find($request->customer_id);
+
+            // Verify customer exists and is not already linked
+            if (!$linkingCustomer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer record not found'
+                ], 404);
+            }
+
+            if ($linkingCustomer->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This customer account is already linked to a user'
+                ], 400);
+            }
+        }
+
+        // Build validation rules
+        $validationRules = [
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
             'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
             'pin_confirmation' => 'required|same:pin',
             'password' => 'nullable|string|min:8',
             'accepted_terms' => 'required|boolean|accepted',
-        ]);
+            'customer_id' => 'nullable|exists:customers,id',
+            'claim_existing' => 'nullable|boolean',
+        ];
+
+        // For phone and email, check if they match the linking customer's info
+        if ($linkingCustomer) {
+            // If linking customer, verify phone matches
+            if ($request->phone !== $linkingCustomer->phone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phone number does not match customer record'
+                ], 400);
+            }
+
+            // Check if phone already exists in users table
+            $existingUserWithPhone = User::where('phone', $request->phone)->first();
+            if ($existingUserWithPhone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This phone number is already registered. If you already have an account, please login instead.',
+                ], 400);
+            }
+
+            // Email can be optional for existing customer or must be unique
+            $validationRules['email'] = 'nullable|string|email|max:255|unique:users';
+            $validationRules['phone'] = 'required|string|regex:/^0[0-9]{9}$/';
+        } else {
+            // For new customers, both phone and email must be unique
+            $validationRules['phone'] = 'required|string|regex:/^0[0-9]{9}$/|unique:users';
+            $validationRules['email'] = 'required|string|email|max:255|unique:users';
+        }
+
+        $request->validate($validationRules);
 
         $user = User::create([
             'name' => $request->name,
@@ -37,7 +144,32 @@ class AuthController extends Controller
             'accepted_terms_at' => now(),
             'accepted_terms_version' => '1.0',
             'accepted_terms_ip' => $request->ip(),
+            'customer_id' => $request->customer_id, // Link to existing customer if provided
+            // If linking to existing customer created by admin, skip registration fee
+            'registration_fee_paid' => $request->customer_id ? true : false,
         ]);
+
+        // If linking to existing customer, update the customer record
+        if ($request->customer_id) {
+            $customer = \App\Models\Customer::find($request->customer_id);
+            $customer->update([
+                'user_id' => $user->id,
+                // Update customer details if provided in registration
+                'email' => $request->email,
+            ]);
+
+            // Create a registration fee record marked as verified for admin-created customers
+            \App\Models\RegistrationFee::create([
+                'user_id' => $user->id,
+                'amount' => 300.00,
+                'mpesa_receipt_number' => 'ADMIN_CREATED',
+                'phone_number' => $user->phone,
+                'status' => 'verified',
+                'verified_at' => now(),
+                'verified_by' => null, // Can be set to admin user if available
+                'notes' => 'Auto-verified for admin-created customer',
+            ]);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -45,9 +177,10 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'User registered successfully',
             'data' => [
-                'user' => $user,
+                'user' => $user->fresh()->load('customer'),
                 'access_token' => $token,
                 'token_type' => 'Bearer',
+                'customer_linked' => $request->customer_id ? true : false,
             ]
         ], 201);
     }

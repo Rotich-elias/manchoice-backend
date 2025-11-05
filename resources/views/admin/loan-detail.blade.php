@@ -3,6 +3,67 @@
 @section('title', 'Loan Application Details')
 
 @section('content')
+<!-- Success/Error Messages -->
+@if(session('success'))
+<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow animate-pulse" role="alert">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center">
+            <div class="py-1">
+                <svg class="fill-current h-8 w-8 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="font-bold text-lg">Success!</p>
+                <p class="text-sm mt-1">{{ session('success') }}</p>
+                <p class="text-xs mt-2 text-green-600">The loan is now visible in the <a href="/admin/loans" class="underline font-semibold">All Loans list</a>. Check the status tabs to filter loans.</p>
+            </div>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="text-green-700 hover:text-green-900">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+@endif
+
+@if(session('error'))
+<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
+    <div class="flex">
+        <div class="py-1">
+            <svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 5h2v6H9V5zm0 8h2v2H9v-2z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="font-bold">Error!</p>
+            <p class="text-sm">{{ session('error') }}</p>
+        </div>
+    </div>
+</div>
+@endif
+
+@if($errors->any())
+<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
+    <div class="flex">
+        <div class="py-1">
+            <svg class="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 5h2v6H9V5zm0 8h2v2H9v-2z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="font-bold">Validation Errors!</p>
+            <ul class="text-sm mt-1 list-disc list-inside">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>

@@ -339,6 +339,55 @@ class UserController extends Controller
     }
 
     /**
+     * Reset customer PIN (for customers who forgot their PIN)
+     */
+    public function resetCustomerPin(Request $request, int $id): JsonResponse
+    {
+        $user = User::where('role', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        // Only super_admin and admin can reset customer PINs
+        $currentUser = $request->user();
+        if (!$currentUser->isSuperAdmin() && !$currentUser->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to reset customer PINs'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user->update([
+            'pin' => Hash::make($request->pin),
+            'password' => Hash::make($request->pin), // Also update password for consistency
+        ]);
+
+        // Log this action for security
+        \Log::info("Customer PIN reset", [
+            'customer_user_id' => $user->id,
+            'customer_name' => $user->name,
+            'customer_phone' => $user->phone,
+            'reset_by_admin' => $currentUser->id,
+            'reset_by_admin_name' => $currentUser->name,
+            'timestamp' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer PIN reset successfully'
+        ]);
+    }
+
+    /**
      * Get user statistics
      */
     public function statistics(): JsonResponse

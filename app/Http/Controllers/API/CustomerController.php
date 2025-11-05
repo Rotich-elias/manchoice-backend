@@ -248,10 +248,21 @@ class CustomerController extends Controller
             $customer = Customer::where('phone', $user->phone)->first();
         }
 
+        // If customer found, ensure it belongs to this user (link if not already linked)
         if ($customer) {
+            // If customer doesn't have a user_id or has wrong user_id, update it
+            if ($customer->user_id !== $user->id) {
+                $customer->update(['user_id' => $user->id]);
+
+                // Also update user's customer_id if not set
+                if (!$user->customer_id) {
+                    $user->update(['customer_id' => $customer->id]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => $customer
+                'data' => $customer->fresh() // Reload to get updated data
             ]);
         }
 

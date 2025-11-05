@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/lookup-customer', [AuthController::class, 'lookupCustomer']); // Customer lookup for registration
 
 // Public product browsing
 Route::get('/products/categories', [ProductController::class, 'categories']);
@@ -129,6 +130,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('admin')->group(
     Route::delete('users/{id}', [UserController::class, 'destroy']);
     Route::post('users/{id}/status', [UserController::class, 'updateStatus']);
     Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('users/{id}/reset-pin', [UserController::class, 'resetCustomerPin']); // Reset customer PIN
 });
 
 // M-PESA Callback routes (public - no authentication required)

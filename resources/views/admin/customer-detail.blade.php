@@ -86,8 +86,30 @@
 
         <!-- Accountability Information -->
         <div class="mt-6 pt-6 border-t border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Account Information</h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-gray-700">Account Information</h3>
+                @if($customer->user_id)
+                <button onclick="openResetPinModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-sm font-semibold">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                    </svg>
+                    Reset PIN
+                </button>
+                @endif
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                @if($customer->user_id)
+                <div>
+                    <span class="text-gray-500">App Account:</span>
+                    <span class="font-medium text-green-600">✓ Registered</span>
+                    <span class="text-gray-400 text-xs block">User ID: #{{ $customer->user_id }}</span>
+                </div>
+                @else
+                <div>
+                    <span class="text-gray-500">App Account:</span>
+                    <span class="font-medium text-gray-400">Not yet registered</span>
+                </div>
+                @endif
                 @if($customer->created_by && $customer->creator)
                 <div>
                     <span class="text-gray-500">Created by:</span>
@@ -557,6 +579,58 @@
     </div>
 </div>
 
+<!-- Reset PIN Modal -->
+@if($customer->user_id)
+<div id="resetPinModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                </svg>
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Reset Customer PIN</h3>
+            </div>
+            <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <p class="text-sm text-yellow-800">
+                    <strong>Customer:</strong> {{ $customer->name }}<br>
+                    <strong>Phone:</strong> {{ $customer->phone }}
+                </p>
+            </div>
+            <form id="resetPinForm" onsubmit="return submitResetPin(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="new_pin">
+                        New PIN (4 digits)
+                    </label>
+                    <input type="password" maxlength="4" pattern="[0-9]{4}" name="pin" id="new_pin"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter 4-digit PIN"
+                           required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="confirm_pin">
+                        Confirm New PIN
+                    </label>
+                    <input type="password" maxlength="4" pattern="[0-9]{4}" name="pin_confirmation" id="confirm_pin"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Confirm 4-digit PIN"
+                           required>
+                </div>
+                <div class="flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeResetPinModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
+                        Reset PIN
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 <script>
 function openCreditLimitModal() {
     document.getElementById('creditLimitModal').classList.remove('hidden');
@@ -572,6 +646,79 @@ document.getElementById('creditLimitModal').addEventListener('click', function(e
         closeCreditLimitModal();
     }
 });
+
+// Reset PIN Modal Functions
+@if($customer->user_id)
+function openResetPinModal() {
+    document.getElementById('resetPinModal').classList.remove('hidden');
+}
+
+function closeResetPinModal() {
+    document.getElementById('resetPinModal').classList.add('hidden');
+    document.getElementById('resetPinForm').reset();
+}
+
+// Close modal when clicking outside
+document.getElementById('resetPinModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeResetPinModal();
+    }
+});
+
+async function submitResetPin(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const pin = form.querySelector('#new_pin').value;
+    const pinConfirmation = form.querySelector('#confirm_pin').value;
+
+    // Validate PIN format
+    if (!/^[0-9]{4}$/.test(pin)) {
+        alert('PIN must be exactly 4 digits');
+        return false;
+    }
+
+    // Validate PIN match
+    if (pin !== pinConfirmation) {
+        alert('PINs do not match. Please try again.');
+        return false;
+    }
+
+    // Confirm action
+    if (!confirm('Are you sure you want to reset this customer\'s PIN?')) {
+        return false;
+    }
+
+    try {
+        const response = await fetch('/api/admin/users/{{ $customer->user_id }}/reset-pin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                pin: pin,
+                pin_confirmation: pinConfirmation
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Customer PIN has been reset successfully!');
+            closeResetPinModal();
+        } else {
+            alert('Error: ' + (data.message || 'Failed to reset PIN'));
+        }
+    } catch (error) {
+        alert('Error: Failed to reset PIN. Please try again.');
+        console.error('Reset PIN error:', error);
+    }
+
+    return false;
+}
+@endif
 </script>
 
 @if(session('success'))

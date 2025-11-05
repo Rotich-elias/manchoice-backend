@@ -227,27 +227,9 @@ class LoanController extends Controller
                 ], 400);
             }
 
-            // Generate loan number
-            $loanNumber = 'LN' . date('Ymd') . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
-
             // Calculate due date if duration is provided
             if (isset($validated['duration_days']) && !isset($validated['due_date'])) {
                 $validated['due_date'] = now()->addDays((int)$validated['duration_days'])->toDateString();
-            }
-
-            // Handle file uploads
-            $photoPaths = [];
-            $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo_front', 'id_photo_back', 'next_of_kin_id_front', 'next_of_kin_id_back', 'next_of_kin_passport_photo', 'guarantor_id_front', 'guarantor_id_back', 'guarantor_passport_photo', 'guarantor_bike_photo', 'guarantor_logbook_photo'];
-
-            foreach ($photoFields as $field) {
-                if ($request->hasFile($field)) {
-                    $file = $request->file($field);
-                    $filename = $loanNumber . '_' . $field . '_' . time() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('loan-documents', $filename, 'public');
-                    $photoPaths[$field . '_path'] = $path;
-                } elseif (isset($validated[$field . '_path'])) {
-                    $photoPaths[$field . '_path'] = $validated[$field . '_path'];
-                }
             }
 
             // Calculate 10% deposit
@@ -261,24 +243,65 @@ class LoanController extends Controller
                 $loanStatus = 'awaiting_deposit'; // New loans need deposit payment first
             }
 
-            $loan = Loan::create([
-                'customer_id' => $validated['customer_id'],
-                'loan_number' => $loanNumber,
-                'principal_amount' => $validated['principal_amount'],
-                'interest_rate' => $validated['interest_rate'] ?? 0,
-                'total_amount' => $totalAmount,
-                'balance' => $totalAmount,
-                'amount_paid' => 0,
-                'deposit_amount' => $depositAmount,
-                'deposit_paid' => 0,
-                'deposit_required' => true,
-                'status' => $loanStatus,
-                'duration_days' => $validated['duration_days'] ?? null,
-                'due_date' => $validated['due_date'] ?? null,
-                'purpose' => $validated['purpose'] ?? null,
-                'notes' => $validated['notes'] ?? null,
-                ...$photoPaths,
-            ]);
+            // Retry loop to handle duplicate loan number race conditions
+            $maxRetries = 5;
+            $retryCount = 0;
+            $loan = null;
+
+            while ($retryCount < $maxRetries && !$loan) {
+                try {
+                    // Generate unique loan number based on today's loans
+                    // Use a random component to reduce collision probability
+                    $todayLoansCount = Loan::whereDate('created_at', today())->lockForUpdate()->count();
+                    $loanNumber = 'LN' . date('Ymd') . str_pad($todayLoansCount + 1 + $retryCount, 4, '0', STR_PAD_LEFT);
+
+                    // Handle file uploads
+                    $photoPaths = [];
+                    $photoFields = ['bike_photo', 'logbook_photo', 'passport_photo', 'id_photo_front', 'id_photo_back', 'next_of_kin_id_front', 'next_of_kin_id_back', 'next_of_kin_passport_photo', 'guarantor_id_front', 'guarantor_id_back', 'guarantor_passport_photo', 'guarantor_bike_photo', 'guarantor_logbook_photo'];
+
+                    foreach ($photoFields as $field) {
+                        if ($request->hasFile($field)) {
+                            $file = $request->file($field);
+                            $filename = $loanNumber . '_' . $field . '_' . time() . rand(1000, 9999) . '.' . $file->getClientOriginalExtension();
+                            $path = $file->storeAs('loan-documents', $filename, 'public');
+                            $photoPaths[$field . '_path'] = $path;
+                        } elseif (isset($validated[$field . '_path'])) {
+                            $photoPaths[$field . '_path'] = $validated[$field . '_path'];
+                        }
+                    }
+
+                    $loanData = [
+                        'customer_id' => $validated['customer_id'],
+                        'loan_number' => $loanNumber,
+                        'principal_amount' => $validated['principal_amount'],
+                        'interest_rate' => $validated['interest_rate'] ?? 0,
+                        'total_amount' => $totalAmount,
+                        'balance' => $totalAmount,
+                        'amount_paid' => 0,
+                        'deposit_amount' => $depositAmount,
+                        'deposit_paid' => 0,
+                        'deposit_required' => true,
+                        'status' => $loanStatus,
+                        'duration_days' => $validated['duration_days'] ?? null,
+                        'due_date' => $validated['due_date'] ?? null,
+                        'purpose' => $validated['purpose'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                        'created_by' => $user->id,
+                    ];
+
+                    // Merge photo paths
+                    $loanData = array_merge($loanData, $photoPaths);
+
+                    $loan = Loan::create($loanData);
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    $retryCount++;
+                    if ($retryCount >= $maxRetries) {
+                        throw $e; // Re-throw if max retries exceeded
+                    }
+                    // Wait a small random time before retrying (1-10ms)
+                    usleep(rand(1000, 10000));
+                }
+            }
 
             // Update customer profile with latest document photos for future reuse
             $customer = Customer::find($validated['customer_id']);

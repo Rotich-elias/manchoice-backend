@@ -26,8 +26,28 @@
                 <div class="hidden md:flex items-center space-x-4 lg:space-x-6 overflow-x-auto">
                     <a href="/admin" class="hover:text-blue-200 whitespace-nowrap">Dashboard</a>
                     <a href="/admin/customers" class="hover:text-blue-200 whitespace-nowrap">Customers</a>
-                    <a href="/admin/loans" class="hover:text-blue-200 whitespace-nowrap">Loans</a>
-                    <a href="/admin/payments" class="hover:text-blue-200 whitespace-nowrap">Payments</a>
+                    <a href="/admin/loans" class="hover:text-blue-200 relative whitespace-nowrap">
+                        Loans
+                        @php
+                            $pendingLoans = \App\Models\Loan::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingLoans > 0)
+                            <span class="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $pendingLoans }}
+                            </span>
+                        @endif
+                    </a>
+                    <a href="/admin/payments" class="hover:text-blue-200 relative whitespace-nowrap">
+                        Payments
+                        @php
+                            $pendingPayments = \App\Models\Payment::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingPayments > 0)
+                            <span class="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $pendingPayments }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/registration-fees" class="hover:text-blue-200 relative whitespace-nowrap">
                         Reg. Fees
                         @php
@@ -51,7 +71,17 @@
                         @endif
                     </a>
                     <a href="/admin/products" class="hover:text-blue-200 whitespace-nowrap">Products</a>
-                    <a href="/admin/part-requests" class="hover:text-blue-200 whitespace-nowrap">Parts. Requests</a>
+                    <a href="/admin/part-requests" class="hover:text-blue-200 relative whitespace-nowrap">
+                        Parts. Requests
+                        @php
+                            $pendingPartRequests = \App\Models\PartRequest::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingPartRequests > 0)
+                            <span class="absolute -top-2 -right-2 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {{ $pendingPartRequests }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/support-tickets" class="hover:text-blue-200 relative whitespace-nowrap">
                         Support
                         @php
@@ -78,8 +108,28 @@
                 <div class="flex flex-col space-y-3">
                     <a href="/admin" class="hover:bg-blue-700 px-3 py-2 rounded-md">Dashboard</a>
                     <a href="/admin/customers" class="hover:bg-blue-700 px-3 py-2 rounded-md">Customers</a>
-                    <a href="/admin/loans" class="hover:bg-blue-700 px-3 py-2 rounded-md">Loans</a>
-                    <a href="/admin/payments" class="hover:bg-blue-700 px-3 py-2 rounded-md">Payments</a>
+                    <a href="/admin/loans" class="hover:bg-blue-700 px-3 py-2 rounded-md flex items-center justify-between">
+                        <span>Loans</span>
+                        @php
+                            $pendingLoans = \App\Models\Loan::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingLoans > 0)
+                            <span class="bg-yellow-500 text-white text-xs rounded-full px-2 py-1">
+                                {{ $pendingLoans }}
+                            </span>
+                        @endif
+                    </a>
+                    <a href="/admin/payments" class="hover:bg-blue-700 px-3 py-2 rounded-md flex items-center justify-between">
+                        <span>Payments</span>
+                        @php
+                            $pendingPayments = \App\Models\Payment::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingPayments > 0)
+                            <span class="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                                {{ $pendingPayments }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/registration-fees" class="hover:bg-blue-700 px-3 py-2 rounded-md flex items-center justify-between">
                         <span>Registration Fees</span>
                         @php
@@ -103,7 +153,17 @@
                         @endif
                     </a>
                     <a href="/admin/products" class="hover:bg-blue-700 px-3 py-2 rounded-md">Products</a>
-                    <a href="/admin/part-requests" class="hover:bg-blue-700 px-3 py-2 rounded-md">Part Requests</a>
+                    <a href="/admin/part-requests" class="hover:bg-blue-700 px-3 py-2 rounded-md flex items-center justify-between">
+                        <span>Part Requests</span>
+                        @php
+                            $pendingPartRequests = \App\Models\PartRequest::where('status', 'pending')->count();
+                        @endphp
+                        @if($pendingPartRequests > 0)
+                            <span class="bg-purple-500 text-white text-xs rounded-full px-2 py-1">
+                                {{ $pendingPartRequests }}
+                            </span>
+                        @endif
+                    </a>
                     <a href="/admin/support-tickets" class="hover:bg-blue-700 px-3 py-2 rounded-md flex items-center justify-between">
                         <span>Support Tickets</span>
                         @php

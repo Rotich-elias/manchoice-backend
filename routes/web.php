@@ -22,8 +22,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
     Route::get('/customers', [DashboardController::class, 'customers']);
     Route::get('/customers/{id}', [DashboardController::class, 'customerDetail']);
+    Route::post('/customers/{id}/update', [DashboardController::class, 'updateCustomer']);
     Route::post('/customers/{id}/update-credit-limit', [DashboardController::class, 'updateCreditLimit']);
     Route::get('/loans', [DashboardController::class, 'loans']);
+    Route::get('/loans/create', [DashboardController::class, 'createLoan'])->name('admin.loans.create')->middleware('super_admin');
     Route::get('/loans/{id}', [DashboardController::class, 'loanDetail']);
     Route::get('/products', [DashboardController::class, 'products']);
     Route::get('/payments', [DashboardController::class, 'payments']);
@@ -63,12 +65,19 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/reports/products', [ReportController::class, 'products'])->name('reports.products');
 });
 
-// Super Admin only routes (User Management)
+// Super Admin only routes (User Management, Customer & Loan Creation)
 Route::prefix('admin')->middleware(['admin', 'super_admin'])->group(function () {
+    // User management
     Route::get('/users', [DashboardController::class, 'users']);
     Route::post('/users/store', [DashboardController::class, 'storeUser']);
     Route::post('/users/{id}/update', [DashboardController::class, 'updateUser']);
     Route::post('/users/{id}/delete', [DashboardController::class, 'deleteUser']);
     Route::post('/users/{id}/update-status', [DashboardController::class, 'updateUserStatus']);
     Route::post('/users/{id}/reset-password', [DashboardController::class, 'resetUserPassword']);
+
+    // Customer creation (super admin only)
+    Route::post('/customers/store', [DashboardController::class, 'storeCustomer']);
+
+    // Loan creation (super admin only)
+    Route::post('/loans/store', [DashboardController::class, 'storeLoan'])->name('admin.loans.store');
 });

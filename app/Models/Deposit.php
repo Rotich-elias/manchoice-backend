@@ -26,12 +26,15 @@ class Deposit extends Model
         'rejected_at',
         'rejected_by',
         'rejection_count',
+        'verified_by',
+        'verified_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
     /**
@@ -64,6 +67,14 @@ class Deposit extends Model
     public function rejector()
     {
         return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    /**
+     * Get the user who verified this deposit
+     */
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**

@@ -97,13 +97,7 @@ class DepositController extends Controller
         $remainingDeposit = $loan->getRemainingDepositAmount();
         $paymentAmount = $request->amount ?? $remainingDeposit;
 
-        // Validate payment amount doesn't exceed remaining
-        if ($paymentAmount > $remainingDeposit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment amount exceeds remaining deposit',
-            ], 400);
-        }
+        // Allow overpayments (advances) - no validation against remaining deposit
 
         // Create deposit record
         $deposit = Deposit::create([
@@ -240,14 +234,7 @@ class DepositController extends Controller
             ], 400);
         }
 
-        // Validate payment amount doesn't exceed remaining
-        $remainingDeposit = $loan->getRemainingDepositAmount();
-        if ($request->amount > $remainingDeposit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment amount exceeds remaining deposit',
-            ], 400);
-        }
+        // Allow overpayments (advances) - no validation against remaining deposit
 
         // Check if this M-PESA code was already submitted
         $existingDeposit = Deposit::where('mpesa_receipt_number', $request->mpesa_code)->first();
@@ -303,13 +290,7 @@ class DepositController extends Controller
             ], 400);
         }
 
-        $remainingDeposit = $loan->getRemainingDepositAmount();
-        if ($request->amount > $remainingDeposit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment amount exceeds remaining deposit',
-            ], 400);
-        }
+        // Allow overpayments (advances) - no validation against remaining deposit
 
         // Create deposit record
         $deposit = Deposit::create([

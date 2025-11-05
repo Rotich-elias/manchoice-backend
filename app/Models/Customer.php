@@ -67,6 +67,9 @@ class Customer extends Model
         'accepted_terms_at',
         'accepted_terms_version',
         'accepted_terms_ip',
+        // Accountability
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -232,6 +235,22 @@ class Customer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the user who created the customer.
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who last updated the customer.
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     /**

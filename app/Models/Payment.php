@@ -21,12 +21,18 @@ class Payment extends Model
         'payment_date',
         'phone_number',
         'notes',
-        'recorded_by'
+        'recorded_by',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_date' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -51,5 +57,21 @@ class Payment extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Get the user who approved the payment.
+     */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Get the user who rejected the payment.
+     */
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 }

@@ -7,6 +7,47 @@
     <h1 class="text-3xl font-bold text-gray-800">Part Requests</h1>
 </div>
 
+<!-- Filters & Search -->
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+    <form method="GET" action="/admin/part-requests" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select name="status" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">All Statuses</option>
+                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
+                <option value="ordered" {{ request('status') == 'ordered' ? 'selected' : '' }}>Ordered</option>
+                <option value="unavailable" {{ request('status') == 'unavailable' ? 'selected' : '' }}>Unavailable</option>
+                <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Urgency</label>
+            <select name="urgency" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">All</option>
+                <option value="low" {{ request('urgency') == 'low' ? 'selected' : '' }}>Low</option>
+                <option value="medium" {{ request('urgency') == 'medium' ? 'selected' : '' }}>Medium</option>
+                <option value="high" {{ request('urgency') == 'high' ? 'selected' : '' }}>High</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+            <select name="sort" class="w-full px-4 py-2 border rounded-lg">
+                <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest First</option>
+                <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Oldest First</option>
+                <option value="urgency" {{ request('sort') == 'urgency' ? 'selected' : '' }}>Urgency (High to Low)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div class="flex gap-2">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Part name, customer" class="flex-1 px-4 py-2 border rounded-lg">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">Filter</button>
+            </div>
+        </div>
+    </form>
+</div>
+
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <table class="min-w-full">
         <thead class="bg-gray-50">

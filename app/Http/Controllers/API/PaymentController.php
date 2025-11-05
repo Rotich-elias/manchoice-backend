@@ -88,13 +88,7 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            // Check if payment exceeds balance
-            if ($validated['amount'] > $loan->balance) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment amount exceeds loan balance'
-                ], 400);
-            }
+            // Allow overpayments - no validation against loan balance
 
             // Generate transaction ID
             $transactionId = 'TXN' . date('YmdHis') . Str::random(4);

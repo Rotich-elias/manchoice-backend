@@ -83,6 +83,27 @@
             </div>
             @endif
         </div>
+
+        <!-- Accountability Information -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Account Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                @if($customer->created_by && $customer->creator)
+                <div>
+                    <span class="text-gray-500">Created by:</span>
+                    <span class="font-medium text-gray-900">{{ $customer->creator->name }}</span>
+                    <span class="text-gray-400 text-xs block">{{ $customer->created_at->format('F d, Y \a\t h:i A') }}</span>
+                </div>
+                @endif
+                @if($customer->updated_by && $customer->updater)
+                <div>
+                    <span class="text-gray-500">Last updated by:</span>
+                    <span class="font-medium text-gray-900">{{ $customer->updater->name }}</span>
+                    <span class="text-gray-400 text-xs block">{{ $customer->updated_at->format('F d, Y \a\t h:i A') }}</span>
+                </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 

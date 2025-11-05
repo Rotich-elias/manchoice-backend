@@ -19,23 +19,42 @@
 </div>
 
 <!-- Filter Tabs -->
-<div class="mb-6 flex space-x-4 border-b">
-    <a href="{{ url('/admin/deposits') }}"
-       class="pb-2 px-4 {{ $currentStatus === 'all' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-600' }}">
-        All Submissions
-    </a>
-    <a href="{{ url('/admin/deposits?status=pending') }}"
-       class="pb-2 px-4 {{ $currentStatus === 'pending' ? 'border-b-2 border-orange-500 text-orange-600 font-semibold' : 'text-gray-600' }}">
-        Pending Verification ({{ $pendingCount }})
-    </a>
-    <a href="{{ url('/admin/deposits?status=completed') }}"
-       class="pb-2 px-4 {{ $currentStatus === 'completed' ? 'border-b-2 border-green-500 text-green-600 font-semibold' : 'text-gray-600' }}">
-        Verified
-    </a>
-    <a href="{{ url('/admin/deposits?status=failed') }}"
-       class="pb-2 px-4 {{ $currentStatus === 'failed' ? 'border-b-2 border-red-500 text-red-600 font-semibold' : 'text-gray-600' }}">
-        Rejected
-    </a>
+<div class="mb-4">
+    <div class="flex space-x-4 border-b mb-4">
+        <a href="{{ url('/admin/deposits') }}"
+           class="pb-2 px-4 {{ $currentStatus === 'all' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-600' }}">
+            All Submissions
+        </a>
+        <a href="{{ url('/admin/deposits?status=pending') }}"
+           class="pb-2 px-4 {{ $currentStatus === 'pending' ? 'border-b-2 border-orange-500 text-orange-600 font-semibold' : 'text-gray-600' }}">
+            Pending Verification ({{ $pendingCount }})
+        </a>
+        <a href="{{ url('/admin/deposits?status=completed') }}"
+           class="pb-2 px-4 {{ $currentStatus === 'completed' ? 'border-b-2 border-green-500 text-green-600 font-semibold' : 'text-gray-600' }}">
+            Verified
+        </a>
+        <a href="{{ url('/admin/deposits?status=failed') }}"
+           class="pb-2 px-4 {{ $currentStatus === 'failed' ? 'border-b-2 border-red-500 text-red-600 font-semibold' : 'text-gray-600' }}">
+            Rejected
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="bg-white p-4 rounded-lg shadow">
+        <form method="GET" action="/admin/deposits" class="flex gap-2">
+            @if(request('status'))
+            <input type="hidden" name="status" value="{{ request('status') }}">
+            @endif
+            <input type="text" name="search" value="{{ request('search') }}"
+                   placeholder="Search by Loan #, Customer Name, Phone, or M-PESA Code"
+                   class="flex-1 px-4 py-2 border rounded-lg">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">Search</button>
+            @if(request('search'))
+            <a href="/admin/deposits{{ request('status') ? '?status='.request('status') : '' }}"
+               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Clear</a>
+            @endif
+        </form>
+    </div>
 </div>
 
 @if(session('success'))

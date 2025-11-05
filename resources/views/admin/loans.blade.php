@@ -6,6 +6,14 @@
 <div class="mb-6 flex justify-between items-center">
     <h1 class="text-3xl font-bold text-gray-800">Loans</h1>
     <div class="flex space-x-2">
+        @if(auth()->user()->role === 'super_admin')
+        <a href="/admin/loans/create" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Create Loan
+        </a>
+        @endif
         <a href="/admin/reports/loans?format=pdf{{ isset($currentStatus) && $currentStatus !== 'all' ? '&status=' . $currentStatus : '' }}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
@@ -21,29 +29,48 @@
     </div>
 </div>
 
-<!-- Filter Tabs -->
-<div class="mb-4 flex flex-wrap gap-2">
-    <a href="/admin/loans" class="px-4 py-2 rounded {{ (!isset($currentStatus) || $currentStatus === 'all') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        All Loans
-    </a>
-    <a href="/admin/loans?status=pending" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'pending') ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Pending
-    </a>
-    <a href="/admin/loans?status=approved" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'approved') ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Approved
-    </a>
-    <a href="/admin/loans?status=active" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'active') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Active
-    </a>
-    <a href="/admin/loans?status=completed" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'completed') ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Completed
-    </a>
-    <a href="/admin/loans?status=rejected" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'rejected') ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Rejected
-    </a>
-    <a href="/admin/loans?status=awaiting_deposit" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'awaiting_deposit') ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Pending Deposit Payment
-    </a>
+<!-- Filter Tabs & Search -->
+<div class="mb-4">
+    <div class="flex flex-wrap gap-2 mb-4">
+        <a href="/admin/loans" class="px-4 py-2 rounded {{ (!isset($currentStatus) || $currentStatus === 'all') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            All Loans
+        </a>
+        <a href="/admin/loans?status=pending" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'pending') ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Pending
+        </a>
+        <a href="/admin/loans?status=approved" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'approved') ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Approved
+        </a>
+        <a href="/admin/loans?status=active" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'active') ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Active
+        </a>
+        <a href="/admin/loans?status=completed" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'completed') ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Completed
+        </a>
+        <a href="/admin/loans?status=rejected" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'rejected') ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Rejected
+        </a>
+        <a href="/admin/loans?status=awaiting_deposit" class="px-4 py-2 rounded {{ (isset($currentStatus) && $currentStatus === 'awaiting_deposit') ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+            Pending Deposit Payment
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="bg-white p-4 rounded-lg shadow">
+        <form method="GET" action="/admin/loans" class="flex gap-2">
+            @if(request('status'))
+            <input type="hidden" name="status" value="{{ request('status') }}">
+            @endif
+            <input type="text" name="search" value="{{ request('search') }}"
+                   placeholder="Search by Loan #, Customer Name, or Phone"
+                   class="flex-1 px-4 py-2 border rounded-lg">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">Search</button>
+            @if(request('search'))
+            <a href="/admin/loans{{ request('status') ? '?status='.request('status') : '' }}"
+               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Clear</a>
+            @endif
+        </form>
+    </div>
 </div>
 
 <div class="bg-white rounded-lg shadow overflow-hidden">

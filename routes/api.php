@@ -12,6 +12,8 @@ use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\RegistrationFeeController;
 use App\Http\Controllers\API\SupportTicketController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\API\Admin\AdminCustomerController;
+use App\Http\Controllers\API\Admin\AdminLoanController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -96,6 +98,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('support-tickets', [SupportTicketController::class, 'store']);
     Route::get('support-tickets/{id}', [SupportTicketController::class, 'show']);
 
+});
+
+// Admin routes - Customer and Loan Management API
+// Accessible by admin, super_admin, manager roles
+Route::middleware(['auth:sanctum', 'role:super_admin,admin,manager'])->prefix('admin')->group(function () {
+    // Customer management - Admin can update any customer
+    Route::get('customers', [AdminCustomerController::class, 'index']);
+    Route::get('customers/{id}', [AdminCustomerController::class, 'show']);
+    Route::put('customers/{id}', [AdminCustomerController::class, 'update']);
+    Route::patch('customers/{id}', [AdminCustomerController::class, 'update']);
+
+    // Loan management - Admin can create and manage loans for any customer
+    Route::get('loans', [AdminLoanController::class, 'index']);
+    Route::post('loans', [AdminLoanController::class, 'store']);
+    Route::post('loans/create-with-payments', [AdminLoanController::class, 'storeWithPayments']); // Enhanced: Create loan with payment tracking
+    Route::get('loans/{id}', [AdminLoanController::class, 'show']);
+    Route::put('loans/{id}', [AdminLoanController::class, 'update']);
+    Route::patch('loans/{id}', [AdminLoanController::class, 'update']);
 });
 
 // Super Admin only routes - User Management API

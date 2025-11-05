@@ -24,6 +24,48 @@
     </div>
 </div>
 
+<!-- Filters & Search -->
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+    <form method="GET" action="/admin/products" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <select name="category" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">All Categories</option>
+                <option value="Spare Parts" {{ request('category') == 'Spare Parts' ? 'selected' : '' }}>Spare Parts</option>
+                <option value="Accessories" {{ request('category') == 'Accessories' ? 'selected' : '' }}>Accessories</option>
+                <option value="Oils & Lubricants" {{ request('category') == 'Oils & Lubricants' ? 'selected' : '' }}>Oils & Lubricants</option>
+                <option value="Tools" {{ request('category') == 'Tools' ? 'selected' : '' }}>Tools</option>
+                <option value="Safety Gear" {{ request('category') == 'Safety Gear' ? 'selected' : '' }}>Safety Gear</option>
+                <option value="Other" {{ request('category') == 'Other' ? 'selected' : '' }}>Other</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Status</label>
+            <select name="stock_status" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">All</option>
+                <option value="in_stock" {{ request('stock_status') == 'in_stock' ? 'selected' : '' }}>In Stock</option>
+                <option value="low_stock" {{ request('stock_status') == 'low_stock' ? 'selected' : '' }}>Low Stock (≤10)</option>
+                <option value="out_of_stock" {{ request('stock_status') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select name="status" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">All</option>
+                <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available</option>
+                <option value="unavailable" {{ request('status') == 'unavailable' ? 'selected' : '' }}>Unavailable</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div class="flex gap-2">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Product name" class="flex-1 px-4 py-2 border rounded-lg">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">Filter</button>
+            </div>
+        </div>
+    </form>
+</div>
+
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <table class="min-w-full">
         <thead class="bg-gray-50">

@@ -51,7 +51,7 @@
                         @endif
                     </a>
                     <a href="/admin/products" class="hover:text-blue-200 whitespace-nowrap">Products</a>
-                    <a href="/admin/part-requests" class="hover:text-blue-200 whitespace-nowrap">Parts</a>
+                    <a href="/admin/part-requests" class="hover:text-blue-200 whitespace-nowrap">Parts. Requests</a>
                     <a href="/admin/support-tickets" class="hover:text-blue-200 relative whitespace-nowrap">
                         Support
                         @php
@@ -157,5 +157,7 @@
 
         @yield('content')
     </div>
+
+    @yield('scripts')
 </body>
 </html>

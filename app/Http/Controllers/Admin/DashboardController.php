@@ -29,16 +29,107 @@ class DashboardController extends Controller
             'low_stock_products' => Product::where('stock_quantity', '<', 10)->count(),
         ];
 
+        // Loan status breakdown for pie chart
+        $loansByStatus = [
+            'pending' => Loan::where('status', 'pending')->count(),
+            'approved' => Loan::where('status', 'approved')->count(),
+            'active' => Loan::where('status', 'active')->count(),
+            'completed' => Loan::where('status', 'completed')->count(),
+            'rejected' => Loan::where('status', 'rejected')->count(),
+            'defaulted' => Loan::where('status', 'defaulted')->count(),
+        ];
+
+        // Revenue over last 30 days for line chart
+        $revenueData = [];
+        $revenueDates = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $revenueDates[] = now()->subDays($i)->format('M d');
+            $revenueData[] = Payment::where('status', 'completed')
+                ->whereDate('payment_date', $date)
+                ->sum('amount');
+        }
+
+        // Loans disbursed over last 30 days for bar chart
+        $loansData = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $loansData[] = Loan::whereDate('created_at', $date)->count();
+        }
+
+        // Customer growth over last 6 months
+        $customerGrowth = [];
+        $customerMonths = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $customerMonths[] = $month->format('M Y');
+            $customerGrowth[] = Customer::whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->count();
+        }
+
+        // Payment method breakdown
+        $paymentMethods = Payment::where('status', 'completed')
+            ->selectRaw('payment_method, SUM(amount) as total')
+            ->groupBy('payment_method')
+            ->get()
+            ->pluck('total', 'payment_method')
+            ->toArray();
+
         $recentLoans = Loan::with('customer')->latest()->take(5)->get();
         $pendingLoans = Loan::with('customer')->where('status', 'pending')->latest()->get();
         $defaultedLoans = Loan::with('customer')->where('status', 'defaulted')->latest()->get();
 
-        return view('admin.dashboard', compact('stats', 'recentLoans', 'pendingLoans', 'defaultedLoans'));
+        return view('admin.dashboard', compact(
+            'stats',
+            'recentLoans',
+            'pendingLoans',
+            'defaultedLoans',
+            'loansByStatus',
+            'revenueData',
+            'revenueDates',
+            'loansData',
+            'customerGrowth',
+            'customerMonths',
+            'paymentMethods'
+        ));
     }
 
-    public function customers()
+    public function customers(Request $request)
     {
-        $customers = Customer::with('loans')->latest()->paginate(20);
+        $query = Customer::with('loans', 'creator', 'updater');
+
+        // Filter by status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by credit status
+        if ($request->has('credit_status') && $request->credit_status) {
+            switch ($request->credit_status) {
+                case 'available':
+                    $query->whereRaw('(credit_limit - (total_borrowed - total_paid)) > 0');
+                    break;
+                case 'maxed':
+                    $query->whereRaw('(credit_limit - (total_borrowed - total_paid)) = 0');
+                    break;
+                case 'overlimit':
+                    $query->whereRaw('(credit_limit - (total_borrowed - total_paid)) < 0');
+                    break;
+            }
+        }
+
+        // Search by name, phone, or ID number
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('id_number', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query->latest()->paginate(20);
         return view('admin.customers', compact('customers'));
     }
 
@@ -46,7 +137,7 @@ class DashboardController extends Controller
     {
         $customer = Customer::with(['loans' => function($query) {
             $query->latest();
-        }])->findOrFail($id);
+        }, 'creator', 'updater'])->findOrFail($id);
 
         return view('admin.customer-detail', compact('customer'));
     }
@@ -66,13 +157,89 @@ class DashboardController extends Controller
         return back()->with('success', 'Credit limit updated successfully');
     }
 
+    /**
+     * Store a new customer (admin created)
+     */
+    public function storeCustomer(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:customers,phone',
+            'email' => 'nullable|email|unique:customers,email',
+            'id_number' => 'nullable|string|unique:customers,id_number',
+            'address' => 'nullable|string',
+            'business_name' => 'nullable|string|max:255',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:active,inactive,blacklisted',
+            'notes' => 'nullable|string',
+            // User association (optional)
+            'user_id' => 'nullable|exists:users,id',
+        ]);
+
+        // Set defaults
+        $validated['credit_limit'] = $validated['credit_limit'] ?? 1000.00;
+        $validated['status'] = $validated['status'] ?? 'active';
+        $validated['accepted_terms'] = true;
+        $validated['accepted_terms_at'] = now();
+        $validated['accepted_terms_version'] = '1.0';
+        $validated['accepted_terms_ip'] = $request->ip();
+        $validated['created_by'] = auth()->id();
+
+        // Add admin note
+        $adminNote = "Customer created by admin: " . auth()->user()->name . " on " . now()->toDateTimeString();
+        $validated['notes'] = isset($validated['notes'])
+            ? $validated['notes'] . "\n\n" . $adminNote
+            : $adminNote;
+
+        $customer = Customer::create($validated);
+
+        return redirect('/admin/customers')->with('success', 'Customer created successfully');
+    }
+
+    /**
+     * Update a customer (admin)
+     */
+    public function updateCustomer(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:customers,phone,' . $id,
+            'email' => 'nullable|email|unique:customers,email,' . $id,
+            'id_number' => 'nullable|string|unique:customers,id_number,' . $id,
+            'address' => 'nullable|string',
+            'business_name' => 'nullable|string|max:255',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'status' => 'required|in:active,inactive,blacklisted',
+            'notes' => 'nullable|string',
+        ]);
+
+        $validated['updated_by'] = auth()->id();
+        $customer->update($validated);
+
+        return back()->with('success', 'Customer updated successfully');
+    }
+
     public function loans(Request $request)
     {
-        $query = Loan::with(['customer', 'approver']);
+        $query = Loan::with(['customer', 'approver', 'rejector', 'creator']);
 
         // Filter by status if provided
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
+        }
+
+        // Search by loan number, customer name, or phone
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('loan_number', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($customerQuery) use ($search) {
+                      $customerQuery->where('name', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
         }
 
         $loans = $query->latest()->paginate(20);
@@ -83,13 +250,301 @@ class DashboardController extends Controller
 
     public function loanDetail($id)
     {
-        $loan = Loan::with(['customer', 'approver', 'payments', 'deposits'])->findOrFail($id);
+        $loan = Loan::with(['customer', 'approver', 'rejector', 'creator', 'payments', 'deposits'])->findOrFail($id);
         return view('admin.loan-detail', compact('loan'));
     }
 
-    public function products()
+    /**
+     * Show the form for creating a new loan
+     */
+    public function createLoan()
     {
-        $products = Product::latest()->paginate(20);
+        $customers = Customer::where('status', '!=', 'deleted')->orderBy('name')->get();
+        $products = Product::where('is_available', true)->orderBy('name')->get();
+
+        return view('admin.create-loan', compact('customers', 'products'));
+    }
+
+    /**
+     * Store a new loan with payment tracking (server-side)
+     */
+    public function storeLoan(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'principal_amount' => 'required|numeric|min:0',
+            'interest_rate' => 'nullable|numeric|min:0|max:100',
+            'duration_days' => 'nullable|integer|min:1',
+            'disbursement_date' => 'nullable|date',
+            'purpose' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'amount_already_paid' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|in:M-Pesa,Cash,Bank Transfer,Cheque',
+            'payment_reference' => 'nullable|string',
+            'skip_credit_limit_check' => 'nullable|boolean',
+            'deposit_required' => 'nullable|boolean',
+            'force_create' => 'nullable|boolean',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            // Document uploads (all 13 photo fields)
+            'bike_photo' => 'nullable|image|max:5120',
+            'logbook_photo' => 'nullable|image|max:5120',
+            'passport_photo' => 'nullable|image|max:5120',
+            'id_photo_front' => 'nullable|image|max:5120',
+            'id_photo_back' => 'nullable|image|max:5120',
+            'next_of_kin_id_front' => 'nullable|image|max:5120',
+            'next_of_kin_id_back' => 'nullable|image|max:5120',
+            'next_of_kin_passport_photo' => 'nullable|image|max:5120',
+            'guarantor_id_front' => 'nullable|image|max:5120',
+            'guarantor_id_back' => 'nullable|image|max:5120',
+            'guarantor_passport_photo' => 'nullable|image|max:5120',
+            'guarantor_bike_photo' => 'nullable|image|max:5120',
+            'guarantor_logbook_photo' => 'nullable|image|max:5120',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            $customer = Customer::findOrFail($validated['customer_id']);
+
+            // Calculate amounts
+            $interestRate = (float)($validated['interest_rate'] ?? 0);
+            $principalAmount = (float)$validated['principal_amount'];
+            $totalAmount = $principalAmount * (1 + ($interestRate / 100));
+            $amountAlreadyPaid = (float)($validated['amount_already_paid'] ?? 0);
+            $balance = $totalAmount - $amountAlreadyPaid;
+
+            // Validate amount paid
+            if ($amountAlreadyPaid > $totalAmount) {
+                return back()->withErrors(['amount_already_paid' => 'Amount paid cannot exceed total loan amount'])->withInput();
+            }
+
+            // Check customer status (allow override)
+            if (!($validated['force_create'] ?? false)) {
+                if ($customer->status === 'blacklisted') {
+                    return back()->withErrors(['customer_id' => 'Customer is blacklisted'])->withInput();
+                }
+                if ($customer->status === 'inactive') {
+                    return back()->withErrors(['customer_id' => 'Customer is inactive'])->withInput();
+                }
+            }
+
+            // Check credit limit
+            if (!($validated['skip_credit_limit_check'] ?? false)) {
+                if ($customer->credit_limit > 0) {
+                    $outstanding = $customer->total_borrowed - $customer->total_paid;
+                    $available = $customer->credit_limit - $outstanding;
+
+                    if ($totalAmount > $available) {
+                        return back()->withErrors([
+                            'principal_amount' => "Loan exceeds available credit (KES " . number_format($available, 2) . ")"
+                        ])->withInput();
+                    }
+                }
+            }
+
+            // Generate loan number
+            $loanNumber = 'LN' . date('Ymd') . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
+
+            // Handle file uploads
+            $photoPaths = [];
+            $photoFields = [
+                'bike_photo', 'logbook_photo', 'passport_photo',
+                'id_photo_front', 'id_photo_back',
+                'next_of_kin_id_front', 'next_of_kin_id_back', 'next_of_kin_passport_photo',
+                'guarantor_id_front', 'guarantor_id_back', 'guarantor_passport_photo',
+                'guarantor_bike_photo', 'guarantor_logbook_photo'
+            ];
+
+            foreach ($photoFields as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $filename = $loanNumber . '_' . $field . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('loan-documents', $filename, 'public');
+                    $photoPaths[$field . '_path'] = $path;
+                }
+            }
+
+            // Calculate dates
+            $disbursementDate = $validated['disbursement_date'] ?? now()->toDateString();
+            $durationDays = (int)($validated['duration_days'] ?? 30);
+            $dueDate = \Carbon\Carbon::parse($disbursementDate)->addDays($durationDays)->toDateString();
+
+            // Deposit settings
+            $depositRequired = !isset($validated['deposit_required']);
+            $depositAmount = $depositRequired ? round($totalAmount * 0.10, 2) : 0;
+
+            // Determine status
+            if ($amountAlreadyPaid >= $totalAmount) {
+                $status = 'completed';
+            } elseif ($amountAlreadyPaid > 0) {
+                $status = 'active';
+            } elseif ($depositRequired) {
+                $status = 'awaiting_deposit';
+            } else {
+                $status = 'pending';
+            }
+
+            // Create loan
+            $loan = Loan::create(array_merge([
+                'customer_id' => $validated['customer_id'],
+                'loan_number' => $loanNumber,
+                'principal_amount' => $principalAmount,
+                'interest_rate' => $interestRate,
+                'total_amount' => $totalAmount,
+                'balance' => $balance,
+                'amount_paid' => $amountAlreadyPaid,
+                'deposit_amount' => $depositAmount,
+                'deposit_paid' => $depositRequired ? 0 : $depositAmount,
+                'deposit_required' => $depositRequired,
+                'status' => $status,
+                'disbursement_date' => $disbursementDate,
+                'duration_days' => $durationDays,
+                'due_date' => $dueDate,
+                'purpose' => $validated['purpose'] ?? null,
+                'notes' => ($validated['notes'] ?? '') . "\n\n[Created by Admin: " . auth()->user()->name . " on " . now()->toDateTimeString() . "]",
+                'created_by' => auth()->id(),
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ], $photoPaths));
+
+            // Calculate and update daily payment
+            $dailyPaymentData = $loan->calculateDailyPayment();
+            $loan->update([
+                'daily_payment_amount' => $dailyPaymentData['daily_payment_amount'],
+                'adjusted_duration_days' => $dailyPaymentData['adjusted_duration_days'],
+                'due_date' => $dailyPaymentData['due_date']->toDateString(),
+            ]);
+
+            // Generate payment schedule
+            $loan->generatePaymentSchedule();
+
+            // Record payment if amount already paid
+            if ($amountAlreadyPaid > 0) {
+                Payment::create([
+                    'loan_id' => $loan->id,
+                    'customer_id' => $customer->id,
+                    'amount' => $amountAlreadyPaid,
+                    'payment_method' => $validated['payment_method'] ?? 'Cash',
+                    'transaction_id' => $validated['payment_reference'] ?? null,
+                    'status' => 'completed',
+                    'payment_date' => now(),
+                    'recorded_by' => auth()->id(),
+                    'notes' => 'Initial payment recorded by admin during loan creation',
+                ]);
+
+                // Update payment schedule
+                $this->updatePaymentScheduleForLoan($loan, $amountAlreadyPaid);
+            }
+
+            // Add loan items
+            if (isset($validated['items']) && !empty($validated['items'])) {
+                foreach ($validated['items'] as $item) {
+                    $product = Product::find($item['product_id']);
+
+                    \App\Models\LoanItem::create([
+                        'loan_id' => $loan->id,
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $product->price,
+                    ]);
+
+                    // Deduct stock if loan is active/approved/completed
+                    if (in_array($status, ['active', 'approved', 'completed'])) {
+                        $product->reduceStock($item['quantity']);
+                    }
+                }
+            }
+
+            // Update customer profile with document photos
+            if (!empty($photoPaths)) {
+                $customer->update($photoPaths);
+            }
+
+            // Update customer stats
+            $customer->increment('loan_count');
+            $customer->total_borrowed += $totalAmount;
+            $customer->total_paid += $amountAlreadyPaid;
+            $customer->save();
+
+            \DB::commit();
+
+            return redirect('/admin/loans/' . $loan->id)->with('success', 'Loan created successfully!');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Admin loan creation failed: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Failed to create loan: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    /**
+     * Helper to update payment schedule based on amount paid
+     */
+    private function updatePaymentScheduleForLoan(Loan $loan, float $amountPaid): void
+    {
+        $remainingAmount = $amountPaid;
+        $schedules = $loan->paymentSchedule()->orderBy('day_number')->get();
+
+        foreach ($schedules as $schedule) {
+            if ($remainingAmount <= 0) break;
+
+            $expectedAmount = $schedule->expected_amount;
+
+            if ($remainingAmount >= $expectedAmount) {
+                $schedule->update([
+                    'paid_amount' => $expectedAmount,
+                    'status' => 'paid',
+                ]);
+                $remainingAmount -= $expectedAmount;
+            } else {
+                $schedule->update([
+                    'paid_amount' => $remainingAmount,
+                    'status' => 'partial',
+                ]);
+                $remainingAmount = 0;
+            }
+        }
+    }
+
+    public function products(Request $request)
+    {
+        $query = Product::query();
+
+        // Filter by category
+        if ($request->has('category') && $request->category) {
+            $query->where('category', $request->category);
+        }
+
+        // Filter by stock status
+        if ($request->has('stock_status') && $request->stock_status) {
+            switch ($request->stock_status) {
+                case 'in_stock':
+                    $query->where('stock_quantity', '>', 10);
+                    break;
+                case 'low_stock':
+                    $query->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 10);
+                    break;
+                case 'out_of_stock':
+                    $query->where('stock_quantity', '=', 0);
+                    break;
+            }
+        }
+
+        // Filter by availability status
+        if ($request->has('status') && $request->status) {
+            $isAvailable = $request->status === 'available';
+            $query->where('is_available', $isAvailable);
+        }
+
+        // Search by product name
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $products = $query->latest()->paginate(20);
         return view('admin.products', compact('products'));
     }
 
@@ -198,10 +653,10 @@ class DashboardController extends Controller
 
         $loan->update([
             'status' => 'rejected',
-            'approved_by' => auth()->id() ?? 1,
-            'approved_at' => now(),
+            'rejected_by' => auth()->id() ?? 1,
+            'rejected_at' => now(),
             'notes' => ($loan->notes ? $loan->notes . "\n\n" : '') .
-                      "REJECTED: " . $rejectionReason,
+                      "REJECTED by " . (auth()->user()->name ?? 'System') . " on " . now()->toDateTimeString() . ": " . $rejectionReason,
         ]);
 
         return back()->with('success', 'Loan rejected successfully');
@@ -320,11 +775,30 @@ class DashboardController extends Controller
 
     public function payments(Request $request)
     {
-        $query = Payment::with(['loan.customer', 'customer']);
+        $query = Payment::with(['loan.customer', 'customer', 'approver', 'rejector', 'recorder']);
 
         // Filter by status if provided
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
+        }
+
+        // Search by transaction ID, customer name, loan number, or receipt
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('transaction_id', 'like', "%{$search}%")
+                  ->orWhere('mpesa_receipt_number', 'like', "%{$search}%")
+                  ->orWhere('reference_number', 'like', "%{$search}%")
+                  ->orWhereHas('loan', function($loanQuery) use ($search) {
+                      $loanQuery->where('loan_number', 'like', "%{$search}%")
+                                ->orWhereHas('customer', function($customerQuery) use ($search) {
+                                    $customerQuery->where('name', 'like', "%{$search}%");
+                                });
+                  })
+                  ->orWhereHas('customer', function($customerQuery) use ($search) {
+                      $customerQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
         }
 
         $payments = $query->latest()->paginate(20);
@@ -353,8 +827,9 @@ class DashboardController extends Controller
         // Update payment status
         $payment->update([
             'status' => 'completed',
-            'recorded_by' => auth()->id() ?? 1,
-            'notes' => ($payment->notes ?? '') . "\nApproved by admin on " . now()->toDateTimeString()
+            'approved_by' => auth()->id() ?? 1,
+            'approved_at' => now(),
+            'notes' => ($payment->notes ?? '') . "\nApproved by " . (auth()->user()->name ?? 'Admin') . " on " . now()->toDateTimeString()
         ]);
 
         // Update loan
@@ -390,7 +865,9 @@ class DashboardController extends Controller
 
         $payment->update([
             'status' => 'failed',
-            'notes' => ($payment->notes ?? '') . "\nRejected by admin: " . $rejectionReason
+            'rejected_by' => auth()->id() ?? 1,
+            'rejected_at' => now(),
+            'notes' => ($payment->notes ?? '') . "\nRejected by " . (auth()->user()->name ?? 'Admin') . " on " . now()->toDateTimeString() . ": " . $rejectionReason
         ]);
 
         return back()->with('success', 'Payment rejected successfully');
@@ -622,12 +1099,27 @@ class DashboardController extends Controller
         $status = $request->get('status', 'all');
         $currentStatus = $status;
 
-        $query = \App\Models\Deposit::with(['loan', 'customer', 'recorder'])
+        $query = \App\Models\Deposit::with(['loan', 'customer', 'recorder', 'verifier', 'rejector'])
             ->where('type', 'loan_deposit')
             ->whereNotNull('loan_id'); // Only show deposits with valid loan IDs
 
         if ($status !== 'all') {
             $query->where('status', $status);
+        }
+
+        // Search by loan number, customer name, phone, or M-PESA code
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('mpesa_code', 'like', "%{$search}%")
+                  ->orWhereHas('loan', function($loanQuery) use ($search) {
+                      $loanQuery->where('loan_number', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('customer', function($customerQuery) use ($search) {
+                      $customerQuery->where('name', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
         }
 
         $deposits = $query->latest()->paginate(20);
@@ -658,7 +1150,8 @@ class DashboardController extends Controller
             $deposit->update([
                 'status' => 'completed',
                 'paid_at' => now(),
-                'recorded_by' => auth()->id(),
+                'verified_by' => auth()->id(),
+                'verified_at' => now(),
                 'notes' => $validated['notes'] ?? null,
             ]);
 

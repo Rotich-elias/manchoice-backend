@@ -34,6 +34,9 @@ class Loan extends Model
         'notes',
         'approved_by',
         'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'created_by',
         // Photo paths for loan application
         'bike_photo_path',
         'logbook_photo_path',
@@ -66,6 +69,7 @@ class Loan extends Model
         'disbursement_date' => 'date',
         'due_date' => 'date',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -94,6 +98,22 @@ class Loan extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Get the user who rejected the loan.
+     */
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    /**
+     * Get the user who created the loan.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

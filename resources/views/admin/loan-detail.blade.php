@@ -72,9 +72,21 @@
             </div>
         </div>
         @elseif($loan->approved_by && $loan->approver)
-        <div class="text-sm text-gray-600">
+        <div class="text-sm text-gray-600 space-y-1">
             <p>Approved by: <span class="font-semibold">{{ $loan->approver->name }}</span></p>
             <p>Approved on: {{ $loan->approved_at->format('F d, Y \a\t h:i A') }}</p>
+        </div>
+        @elseif($loan->status === 'rejected' && $loan->rejected_by && $loan->rejector)
+        <div class="text-sm text-red-600 space-y-1">
+            <p>Rejected by: <span class="font-semibold">{{ $loan->rejector->name }}</span></p>
+            <p>Rejected on: {{ $loan->rejected_at->format('F d, Y \a\t h:i A') }}</p>
+        </div>
+        @endif
+
+        @if($loan->created_by && $loan->creator)
+        <div class="text-xs text-gray-500 mt-2 pt-2 border-t">
+            <p>Created by: <span class="font-medium">{{ $loan->creator->name }}</span></p>
+            <p>Created on: {{ $loan->created_at->format('F d, Y \a\t h:i A') }}</p>
         </div>
         @endif
     </div>
@@ -760,9 +772,42 @@ function toggleQuickMpesaFields(select) {
                target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
         </div>
         @endif
+
+        <!-- Guarantor Bike Photo -->
+        @if($loan->guarantor_bike_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                </svg>
+                Guarantor Bike Photo
+            </h3>
+            <img src="{{ str_starts_with($loan->guarantor_bike_photo_path, 'http') ? $loan->guarantor_bike_photo_path : asset('storage/' . $loan->guarantor_bike_photo_path) }}"
+                 alt="Guarantor Bike" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->guarantor_bike_photo_path, 'http') ? $loan->guarantor_bike_photo_path : asset('storage/' . $loan->guarantor_bike_photo_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
+
+        <!-- Guarantor Logbook Photo -->
+        @if($loan->guarantor_logbook_photo_path)
+        <div class="border rounded-lg p-4 bg-gray-50 hover:shadow-lg transition-shadow">
+            <h3 class="font-semibold mb-2 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                Guarantor Logbook Photo
+            </h3>
+            <img src="{{ str_starts_with($loan->guarantor_logbook_photo_path, 'http') ? $loan->guarantor_logbook_photo_path : asset('storage/' . $loan->guarantor_logbook_photo_path) }}"
+                 alt="Guarantor Logbook" class="w-full h-48 object-cover rounded mb-2 border">
+            <a href="{{ str_starts_with($loan->guarantor_logbook_photo_path, 'http') ? $loan->guarantor_logbook_photo_path : asset('storage/' . $loan->guarantor_logbook_photo_path) }}"
+               target="_blank" class="text-blue-600 hover:underline text-sm font-medium">📸 View Full Size</a>
+        </div>
+        @endif
     </div>
 
-    @if(!$loan->bike_photo_path && !$loan->logbook_photo_path && !$loan->passport_photo_path && !$loan->id_photo_front_path && !$loan->id_photo_back_path && !$loan->next_of_kin_id_front_path && !$loan->next_of_kin_id_back_path && !$loan->next_of_kin_passport_photo_path && !$loan->guarantor_id_front_path && !$loan->guarantor_id_back_path && !$loan->guarantor_passport_photo_path)
+    @if(!$loan->bike_photo_path && !$loan->logbook_photo_path && !$loan->passport_photo_path && !$loan->id_photo_front_path && !$loan->id_photo_back_path && !$loan->next_of_kin_id_front_path && !$loan->next_of_kin_id_back_path && !$loan->next_of_kin_passport_photo_path && !$loan->guarantor_id_front_path && !$loan->guarantor_id_back_path && !$loan->guarantor_passport_photo_path && !$loan->guarantor_bike_photo_path && !$loan->guarantor_logbook_photo_path)
     <p class="text-gray-500 text-center py-8">No documents uploaded for this application</p>
     @endif
 </div>

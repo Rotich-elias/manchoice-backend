@@ -1364,4 +1364,52 @@ class DashboardController extends Controller
 
         return back()->with('success', 'Password reset successfully');
     }
+
+    /**
+     * Reset customer PIN
+     */
+    public function resetCustomerPin(Request $request, $id)
+    {
+        // Only super_admin and admin can reset customer PINs
+        $currentUser = auth()->user();
+        if (!$currentUser->isSuperAdmin() && !$currentUser->isAdmin()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to reset customer PINs'
+                ], 403);
+            }
+            return back()->with('error', 'You do not have permission to reset customer PINs');
+        }
+
+        $customer = User::where('role', User::ROLE_CUSTOMER)->findOrFail($id);
+
+        $validated = $request->validate([
+            'pin' => 'required|string|size:4|regex:/^[0-9]{4}$/|confirmed',
+        ]);
+
+        $customer->update([
+            'pin' => Hash::make($validated['pin']),
+            'password' => Hash::make($validated['pin']), // Also update password for consistency
+        ]);
+
+        // Log this action for security
+        \Log::info("Customer PIN reset by admin", [
+            'customer_user_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'customer_phone' => $customer->phone,
+            'reset_by_admin' => $currentUser->id,
+            'reset_by_admin_name' => $currentUser->name,
+            'timestamp' => now(),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer PIN reset successfully'
+            ]);
+        }
+
+        return back()->with('success', 'Customer PIN reset successfully');
+    }
 }

@@ -690,7 +690,7 @@ async function submitResetPin(event) {
     }
 
     try {
-        const response = await fetch('/api/admin/users/{{ $customer->user_id }}/reset-pin', {
+        const response = await fetch('/admin/customers/{{ $customer->user_id }}/reset-pin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

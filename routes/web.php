@@ -57,6 +57,9 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/deposits', [DashboardController::class, 'deposits']);
     Route::post('/deposits/{id}/verify', [DashboardController::class, 'verifyDeposit']);
 
+    // Customer PIN reset (super_admin and admin only - permission checked in controller)
+    Route::post('/customers/{id}/reset-pin', [DashboardController::class, 'resetCustomerPin']);
+
     // Report export routes
     Route::get('/reports/customers', [ReportController::class, 'customers'])->name('reports.customers');
     Route::get('/reports/loans', [ReportController::class, 'loans'])->name('reports.loans');

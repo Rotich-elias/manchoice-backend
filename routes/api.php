@@ -130,6 +130,10 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('admin')->group(
     Route::delete('users/{id}', [UserController::class, 'destroy']);
     Route::post('users/{id}/status', [UserController::class, 'updateStatus']);
     Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword']);
+});
+
+// Super Admin and Admin routes - Customer PIN reset
+Route::middleware(['auth:sanctum', 'role:super_admin,admin'])->prefix('admin')->group(function () {
     Route::post('users/{id}/reset-pin', [UserController::class, 'resetCustomerPin']); // Reset customer PIN
 });
 

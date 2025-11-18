@@ -159,17 +159,17 @@ You have the following rights regarding your personal information:
 ### 7.5 Objection to Processing
 - Right to object to processing of your personal information in certain circumstances
 
-To exercise these rights, please contact us using the information provided in Section 10.
+To exercise these rights, including the right to request account deletion, please contact us using the information provided in Section 12 or visit our dedicated [Account Deletion Policy](ACCOUNT_DELETION_POLICY.md).
 
 ## 8. International Data Transfers
 
 Your personal information is processed and stored primarily within Kenya. If we transfer your data outside Kenya, we ensure appropriate safeguards are in place to protect your information in accordance with this Privacy Policy and applicable laws.
 
-## 9. Children's Privacy
+## 10. Children's Privacy
 
 Our services are not directed to individuals under the age of 18. We do not knowingly collect personal information from children. If we become aware that we have collected personal information from a child without parental consent, we will take steps to remove that information.
 
-## 10. Changes to This Privacy Policy
+## 11. Changes to This Privacy Policy
 
 We may update this Privacy Policy from time to time. We will notify you of any changes by:
 - Posting the new Privacy Policy in the application
@@ -178,25 +178,25 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 Your continued use of the application after any changes constitutes acceptance of the updated policy.
 
-## 11. Contact Information
+## 12. Contact Information
 
 If you have any questions or concerns about this Privacy Policy or our data practices, please contact us:
 
 **MAN'S CHOICE ENTERPRISE**
-Email: privacy@manschoice.co.ke
-Phone: [Your Contact Number]
-Address: [Your Physical Address]
+Email: admin@manschoice.co.ke
+Phone: +254721237811
+Address: 7-30129 Chepkorio
 
 **Data Protection Officer:**
-Email: dpo@manschoice.co.ke
+Email: admin@manschoice.co.ke
 
-## 12. Complaints
+## 13. Complaints
 
 If you have concerns about how we handle your personal information, you may file a complaint with:
-- Our Data Protection Officer at dpo@manschoice.co.ke
+- Our Data Protection Officer at admin@manschoice.co.ke
 - The Office of the Data Protection Commissioner in Kenya
 
-## 13. Consent
+## 14. Consent
 
 By using our mobile application, you consent to the collection, use, and sharing of your information as described in this Privacy Policy.
 

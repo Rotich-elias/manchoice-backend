@@ -10,6 +10,23 @@ Route::get('/', function () {
     return redirect('/admin');
 });
 
+// Public pages routes
+Route::get('/about-us', function () {
+    return response()->file(public_path('about-us.html'));
+});
+
+Route::get('/products', function () {
+    return response()->file(public_path('products.html'));
+});
+
+Route::get('/privacy-policy', function () {
+    return response()->file(public_path('privacy-policy.html'));
+});
+
+Route::get('/account-deletion-policy', function () {
+    return response()->file(public_path('account-deletion-policy.html'));
+});
+
 // Admin authentication routes (no middleware)
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('admin.login');

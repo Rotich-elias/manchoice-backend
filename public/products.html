@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Products - MAN'S CHOICE ENTERPRISE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            color: #6c757d;
+            font-size: 1.2rem;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        h3 {
+            color: #495057;
+            margin: 20px 0 10px 0;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .contact-info {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .cta-button:hover {
+            background: #0056b3;
+        }
+        
+        .cta-button.secondary {
+            background: #28a745;
+        }
+        
+        .cta-button.secondary:hover {
+            background: #1e7e34;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .product-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .product-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .product-features {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .product-features li {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 10px;
+        }
+        
+        .product-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .category-section {
+            margin-bottom: 40px;
+        }
+        
+        .category-title {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-link {
+            color: #007bff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            body {
+                padding: 10px;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cta-button {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Our Products & Services</h1>
+            <p class="tagline">Quality Solutions for Your Business and Personal Needs</p>
+        </header>
+
+        <div class="navigation">
+            <a href="about-us.html" class="nav-link">About Us</a>
+            <a href="privacy-policy.html" class="nav-link">Privacy Policy</a>
+            <a href="account-deletion-policy.html" class="nav-link">Account Deletion</a>
+        </div>
+
+        <div class="section">
+            <h2>Comprehensive Financial & Automotive Solutions</h2>
+            <p>At MAN'S CHOICE ENTERPRISE, we offer a wide range of products and services designed to meet the diverse needs of our customers. From flexible loan options to quality motorcycle parts, we are your one-stop solution for financial and automotive needs.</p>
+        </div>
+
+        <div class="category-section">
+            <h2 class="category-title">Financial Services</h2>
+            <div class="products-grid">
+                <div class="product-card">
+                    <h3>Business Loans</h3>
+                    <p>Tailored financing solutions for entrepreneurs and small business owners looking to expand their operations or manage cash flow.</p>
+                    <ul class="product-features">
+                        <li>Flexible repayment terms</li>
+                        <li>Competitive interest rates</li>
+                        <li>Quick approval process</li>
+                        <li>No hidden charges</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Motorcycle Financing</h3>
+                    <p>Specialized loan products designed specifically for motorcycle owners and operators in the transport sector.</p>
+                    <ul class="product-features">
+                        <li>Asset-backed financing</li>
+                        <li>Customized payment plans</li>
+                        <li>Insurance package options</li>
+                        <li>Maintenance support</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Personal Loans</h3>
+                    <p>Accessible personal credit solutions for various needs including education, healthcare, and personal development.</p>
+                    <ul class="product-features">
+                        <li>Fast disbursement</li>
+                        <li>Minimal documentation</li>
+                        <li>Flexible amounts</li>
+                        <li>Credit building opportunities</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2 class="category-title">Automotive Products</h2>
+            <div class="products-grid">
+                <div class="product-card">
+                    <h3>Genuine Motorcycle Parts</h3>
+                    <p>High-quality, authentic motorcycle parts and accessories for various makes and models.</p>
+                    <ul class="product-features">
+                        <li>Original equipment manufacturer parts</li>
+                        <li>Comprehensive warranty</li>
+                        <li>Expert installation available</li>
+                        <li>Same-day availability for common parts</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Performance Accessories</h3>
+                    <p>Enhance your motorcycle's performance and appearance with our premium accessories.</p>
+                    <ul class="product-features">
+                        <li>Performance exhaust systems</li>
+                        <li>Custom seats and handlebars</li>
+                        <li>Lighting upgrades</li>
+                        <li>Storage solutions</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Maintenance Services</h3>
+                    <p>Professional maintenance and repair services to keep your motorcycle in optimal condition.</p>
+                    <ul class="product-features">
+                        <li>Regular servicing</li>
+                        <li>Engine diagnostics</li>
+                        <li>Brake and tire services</li>
+                        <li>Electrical system repairs</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-section">
+            <h2 class="category-title">Digital Services</h2>
+            <div class="products-grid">
+                <div class="product-card">
+                    <h3>Mobile Banking App</h3>
+                    <p>Convenient mobile application for managing your loans, making payments, and accessing financial services.</p>
+                    <ul class="product-features">
+                        <li>24/7 account access</li>
+                        <li>Secure M-PESA integration</li>
+                        <li>Real-time loan tracking</li>
+                        <li>Payment reminders</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Online Account Management</h3>
+                    <p>Comprehensive web portal for managing your financial portfolio and accessing support services.</p>
+                    <ul class="product-features">
+                        <li>Detailed transaction history</li>
+                        <li>Document upload and storage</li>
+                        <li>Customer support portal</li>
+                        <li>Financial planning tools</li>
+                    </ul>
+                </div>
+                
+                <div class="product-card">
+                    <h3>Customer Support</h3>
+                    <p>Dedicated support services to ensure you get the assistance you need when you need it.</p>
+                    <ul class="product-features">
+                        <li>Phone and email support</li>
+                        <li>In-person consultations</li>
+                        <li>Financial advisory services</li>
+                        <li>Emergency assistance</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-buttons">
+            <a href="about-us.html" class="cta-button">Learn More About Us</a>
+            <a href="https://drive.google.com/file/d/1bsjMu4ZktRZZJpprydCV5GUzENSUQuhi/view?usp=sharing" class="cta-button secondary" target="_blank">Download Our App</a>
+        </div>
+
+        <div class="contact-info">
+            <h2>Get Started Today</h2>
+            <p><strong>Ready to explore our products and services?</strong> Contact us to learn more about how we can help you achieve your financial and business goals.</p>
+            
+            <p><strong>MAN'S CHOICE ENTERPRISE</strong><br>
+            Email: admin@manschoice.co.ke<br>
+            Phone: +254721237811<br>
+            Address: 7-30129 Chepkorio</p>
+            
+            <p><strong>Business Hours:</strong><br>
+            Monday - Friday: 8:00 AM - 5:00 PM<br>
+            Saturday: 9:00 AM - 1:00 PM<br>
+            Sunday: Closed</p>
+        </div>
+
+        <footer>
+            <p><em>Your trusted partner for financial solutions and quality automotive products.</em></p>
+            <p>&copy; 2025 MAN'S CHOICE ENTERPRISE. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Smooth scrolling for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId !== '#') {
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

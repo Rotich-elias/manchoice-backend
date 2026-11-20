@@ -19,6 +19,10 @@ Route::get('/products', function () {
     return response()->file(public_path('products.html'));
 });
 
+Route::get('/updates', function () {
+    return response()->file(public_path('updates.html'));
+});
+
 Route::get('/privacy-policy', function () {
     return response()->file(public_path('privacy-policy.html'));
 });
